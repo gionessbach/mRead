@@ -138,27 +138,29 @@
   .photoview{position:absolute;inset:0;background:#1E1E19;overflow:hidden}
   .pv-inner{position:absolute}
   .pv-inner img{position:absolute;inset:0;width:100%;height:100%;-webkit-user-drag:none;pointer-events:none;border-radius:4px}
-  .pb{position:absolute;border-radius:4px;cursor:pointer;transition:background .12s,box-shadow .12s}
-  .pb::before{content:"";position:absolute;inset:-6px -3px}        /* größere Tippfläche */
-  .pb.scur{background:rgba(255,231,102,.28);box-shadow:0 0 0 2px rgba(253,208,2,.55)}
-  .pb.cur{background:rgba(253,208,2,.5);box-shadow:0 0 0 3px var(--yellow),0 0 18px 4px rgba(253,208,2,.65)}
-  .pb.masked{background:rgba(38,38,31,.85)}
+  /* Wortflächen: unsichtbar, nur zum Markieren beim Vorlesen */
+  .pb{position:absolute;border-radius:3px;pointer-events:none;mix-blend-mode:multiply;transition:background .12s}
+  .pb.cur{background:rgba(253,208,2,.95);box-shadow:0 0 0 3px rgba(253,208,2,.95)}
+  .pb.masked{background:#26261F;mix-blend-mode:normal}
+  /* vorlesbare Zeilen: wie mit Textmarker hinterlegt – die Schrift bleibt sichtbar */
+  .pl{position:absolute;border-radius:4px;cursor:pointer;background:rgba(253,208,2,.42);mix-blend-mode:multiply;transition:background .15s}
+  .pl::before{content:"";position:absolute;inset:-5px -3px}          /* größere Tippfläche */
+  .pl.active{background:rgba(253,208,2,.6)}
+  .photoview.clean .pl{background:transparent}
+  .photoview.clean .pl.active{background:rgba(253,208,2,.45)}
   .pv-tip{
-    position:absolute;left:16px;right:16px;top:12px;height:36px;display:flex;align-items:center;justify-content:center;gap:8px;
+    position:absolute;left:150px;right:150px;top:12px;height:36px;display:flex;align-items:center;justify-content:center;gap:8px;
     color:#F1EFE6;font-family:var(--font-kid);font-weight:700;font-size:18px;text-align:center;pointer-events:none;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .pv-tip svg{width:22px;height:22px;flex:none;color:var(--yellow)}
-  /* vorlesbare Textbausteine: gelb gestrichelt umrandet */
-  .pp{position:absolute;border:2px dashed var(--yellow);border-radius:8px;cursor:pointer;
-      filter:drop-shadow(0 0 1px rgba(30,30,25,.6))}
-  /* Lautsprecher-Zeichen links neben dem Baustein, damit es keinen Text verdeckt */
-  .pp::after{
-    content:"";position:absolute;left:-30px;top:-2px;width:24px;height:24px;border-radius:50%;
-    background:var(--yellow) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z' fill='%2326261F'/%3E%3Cpath d='M15.5 9a4 4 0 0 1 0 6' stroke='%2326261F' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center/16px no-repeat;
-    box-shadow:0 1px 3px rgba(0,0,0,.35);
+  .pv-mark{
+    position:absolute;top:10px;right:12px;height:40px;padding:0 12px;border-radius:999px;border:0;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);color:#F1EFE6;font-size:15px;font-weight:600;
   }
-  .pp.active{border-style:solid}
+  .pv-mark svg{width:20px;height:20px}
+  .pv-mark[aria-pressed="true"] .sw{background:var(--yellow)}
+  .pv-mark .sw{width:14px;height:14px;border-radius:4px;border:2px solid var(--yellow)}
   .viewtoggle button{min-width:0;padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-size:20px}
   .viewtoggle svg{width:26px;height:26px}
 
@@ -245,7 +247,8 @@
 
     <div class="photoview" id="photoView" hidden>
       <div class="pv-inner" id="pvInner"><img id="pvImg" alt="Dein Foto"></div>
-      <div class="pv-tip" id="pvTip"><svg viewBox="0 0 24 24"><path d="M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Tippe auf einen gelb umrandeten Text, dann lese ich ihn vor.</div>
+      <div class="pv-tip" id="pvTip"><svg viewBox="0 0 24 24"><path d="M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Tippe auf einen gelb markierten Text, dann lese ich ihn vor.</div>
+      <button id="pvMark" class="pv-mark" type="button" aria-pressed="true" aria-label="Markierung zeigen"><span class="sw"></span>Markierung</button>
     </div>
 
     <div class="empty" id="empty">
@@ -349,6 +352,7 @@
   var camInput = $("camInput"), galleryInput = $("galleryInput");
   var modeNormal = $("modeNormal"), modeUpper = $("modeUpper"), smaller = $("smaller"), bigger = $("bigger");
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
+  var pvMark = $("pvMark"), showMarks = true;
   var photoView = $("photoView"), pvInner = $("pvInner"), pvImg = $("pvImg"), pvTip = $("pvTip");
   var viewToggle = $("viewToggle"), viewPhotoBtn = $("viewPhoto"), viewTextBtn = $("viewText");
   var sizeToggle = $("sizeToggle"), caseToggle = $("caseToggle");
@@ -647,7 +651,7 @@
     var sIdx = -1, startNew = true;
     var hasPhoto = !!(photoData && boxes && boxes.length === paras.length);
     if(!hasPhoto && view === "photo") view = "text";
-    pvInner.querySelectorAll(".pb,.pp").forEach(function(n){ n.remove(); });
+    pvInner.querySelectorAll(".pb,.pl").forEach(function(n){ n.remove(); });
     paraEls = [];
     paras.forEach(function(words, pIdx){
       paraSent[pIdx] = [sIdx + 1, sIdx + 1];
@@ -688,22 +692,25 @@
       });
       textEl.appendChild(p);
       paraSent[pIdx][1] = sIdx + 1;
-      // Rahmen um den ganzen Textbaustein, damit man sieht, was vorgelesen werden kann
-      if(hasPhoto && boxes[pIdx]){
-        var all = [].concat.apply([], boxes[pIdx].filter(Boolean));
-        var speakableHere = words.some(function(w){ return w.indexOf(MASKE) !== 0; });
-        if(all.length && speakableHere){
-          var x0 = Math.min.apply(0, all.map(function(b){ return b[0]; })), y0 = Math.min.apply(0, all.map(function(b){ return b[1]; }));
-          var x1 = Math.max.apply(0, all.map(function(b){ return b[2]; })), y1 = Math.max.apply(0, all.map(function(b){ return b[3]; }));
-          var mx = 0.006, my = 0.008;
-          var pp = document.createElement("span");
-          pp.className = "pp"; pp.dataset.p = pIdx;
-          pp.style.left = (Math.max(0, x0 - mx) * 100) + "%"; pp.style.top = (Math.max(0, y0 - my) * 100) + "%";
-          pp.style.width = ((Math.min(1, x1 + mx) - Math.max(0, x0 - mx)) * 100) + "%";
-          pp.style.height = ((Math.min(1, y1 + my) - Math.max(0, y0 - my)) * 100) + "%";
-          pvInner.insertBefore(pp, pvImg.nextSibling);
-          paraEls[pIdx] = pp;
-        }
+      // Zeilen des Textbausteins wie mit Textmarker hinterlegen, damit man sieht, was vorgelesen werden kann
+      if(hasPhoto && boxes[pIdx] && words.some(function(w){ return w.indexOf(MASKE) !== 0; })){
+        var segs = [];
+        boxes[pIdx].forEach(function(bs){ (bs || []).forEach(function(b){
+          var h = b[3] - b[1], cy = (b[1] + b[3]) / 2, last = segs[segs.length - 1];
+          // gleiche Zeile: Mitte liegt in der Höhe der bisherigen Zeile und kein großer Abstand
+          if(last && cy > last[1] && cy < last[3] && b[0] - last[2] < h * 2.5 && b[0] > last[0]){
+            last[1] = Math.min(last[1], b[1]); last[2] = Math.max(last[2], b[2]); last[3] = Math.max(last[3], b[3]);
+          }else segs.push(b.slice());
+        }); });
+        paraEls[pIdx] = segs.map(function(b){
+          var pl = document.createElement("span");
+          var py = (b[3] - b[1]) * 0.12, px = (b[3] - b[1]) * 0.15;
+          pl.className = "pl"; pl.dataset.p = pIdx;
+          pl.style.left = ((b[0] - px) * 100) + "%"; pl.style.top = ((b[1] - py) * 100) + "%";
+          pl.style.width = ((b[2] - b[0] + 2 * px) * 100) + "%"; pl.style.height = ((b[3] - b[1] + 2 * py) * 100) + "%";
+          pvInner.insertBefore(pl, pvImg.nextSibling);
+          return pl;
+        });
       }
     });
     textEl.style.fontSize = sizes[sizeIdx] + "px";
@@ -783,8 +790,7 @@
     if(curW){ curW.classList.remove("cur"); curW = null; }
     curPb.forEach(function(n){ n.classList.remove("cur", "scur", "active"); }); curPb = [];
     if(sIdx != null && sentences[sIdx] && sentences[sIdx].length){
-      var pe = paraEls[tokens[sentences[sIdx][0]].para];
-      if(pe){ pe.classList.add("active"); curPb.push(pe); }
+      (paraEls[tokens[sentences[sIdx][0]].para] || []).forEach(function(pe){ pe.classList.add("active"); curPb.push(pe); });
     }
     if(sIdx != null && sentences[sIdx]) sentences[sIdx].forEach(function(t){
       tokens[t].pbs.forEach(function(n){ n.classList.add("scur"); curPb.push(n); });
@@ -878,11 +884,17 @@
   }
 
   photoView.addEventListener("click", function(e){
-    var b = e.target.closest(".pb,.pp");
-    if(!b || b.classList.contains("masked")) return;
-    var pIdx = b.classList.contains("pp") ? +b.dataset.p : (tokens[+b.dataset.i] || {}).para;
+    var b = e.target.closest(".pl");
+    if(!b) return;
+    var pIdx = +b.dataset.p;
     if(pIdx == null || !paraSent[pIdx]) return;
     readFrom(paraSent[pIdx][0], paraSent[pIdx][1]);
+  });
+  pvMark.addEventListener("click", function(e){
+    e.stopPropagation();
+    showMarks = !showMarks;
+    pvMark.setAttribute("aria-pressed", String(showMarks));
+    photoView.classList.toggle("clean", !showMarks);
   });
   function setView(v){ if(view === v) return; stopReading(); view = v; save(); render(); }
   viewPhotoBtn.addEventListener("click", function(){ setView("photo"); });
