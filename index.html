@@ -92,7 +92,7 @@
   .empty .small,.busy .small{color:var(--muted);font-size:18px;max-width:30em;line-height:1.4}
   .busy{background:var(--sheet)}
   .busy .photo{
-    width:min(70%,520px);aspect-ratio:4/3;max-width:100%;border-radius:18px;background:var(--bg) center/cover no-repeat;
+    width:min(70%,520px);aspect-ratio:4/3;max-width:100%;border-radius:18px;background:var(--bg) center/contain no-repeat;
     position:relative;overflow:hidden;
   }
   .busy .photo::after{
@@ -133,6 +133,26 @@
   .viewer .round{position:absolute;top:max(16px, env(safe-area-inset-top,0px));right:max(16px, env(safe-area-inset-right,0px))}
 
   .file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+  /* Bereich auf dem Foto wählen */
+  .crop{position:absolute;inset:0;background:#1E1E19;z-index:2;touch-action:none}
+  .crop-tip{
+    position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:3;max-width:calc(100% - 32px);
+    background:var(--yellow);color:var(--ink);font-family:var(--font-kid);font-weight:700;font-size:19px;
+    padding:8px 16px;border-radius:999px;text-align:center;
+  }
+  .crop-area{position:absolute;inset:64px 16px 16px;touch-action:none}
+  .crop-area img{position:absolute;-webkit-user-drag:none;pointer-events:none}
+  .frame{
+    position:absolute;border:3px solid var(--yellow);border-radius:6px;cursor:move;
+    box-shadow:0 0 0 9999px rgba(20,20,16,.55);touch-action:none;
+  }
+  .frame .h{position:absolute;width:56px;height:56px;touch-action:none}
+  .frame .h::after{content:"";position:absolute;width:26px;height:26px;border:7px solid var(--yellow)}
+  .frame .nw{left:-28px;top:-28px;cursor:nwse-resize} .frame .nw::after{left:22px;top:22px;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
+  .frame .ne{right:-28px;top:-28px;cursor:nesw-resize} .frame .ne::after{right:22px;top:22px;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
+  .frame .sw{left:-28px;bottom:-28px;cursor:nesw-resize} .frame .sw::after{left:22px;bottom:22px;border-right:0;border-top:0;border-radius:0 0 0 8px}
+  .frame .se{right:-28px;bottom:-28px;cursor:nwse-resize} .frame .se::after{right:22px;bottom:22px;border-left:0;border-top:0;border-radius:0 0 8px 0}
 
   /* Stimmenauswahl */
   .scrim{
@@ -205,10 +225,37 @@
       <div class="small" id="busyText">Einen Moment bitte.</div>
     </div>
 
+    <div class="crop" id="crop" hidden>
+      <div class="crop-tip">Zieh den Rahmen um den Text, der vorgelesen werden soll.</div>
+      <div class="crop-area" id="cropArea">
+        <img id="cropImg" alt="Dein Foto">
+        <div class="frame" id="frame">
+          <i class="h nw" data-h="nw"></i><i class="h ne" data-h="ne"></i><i class="h sw" data-h="sw"></i><i class="h se" data-h="se"></i>
+        </div>
+      </div>
+    </div>
+
     <div class="msg" id="msg" hidden></div>
   </main>
 
-  <div class="controls">
+  <div class="controls" id="cropControls" hidden>
+    <div class="left">
+      <button id="cropCancel" class="round" type="button" aria-label="Abbrechen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <button id="cropGo" class="big-btn" type="button" aria-label="Diesen Bereich lesen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </button>
+    <div class="right">
+      <button id="cropAll" class="round speed" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></svg>
+        Ganzes Foto
+      </button>
+    </div>
+  </div>
+
+  <div class="controls" id="mainControls">
     <div class="left">
       <button id="camSmall" class="round" type="button" aria-label="Neues Foto" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -261,6 +308,8 @@
   var camInput = $("camInput"), galleryInput = $("galleryInput");
   var modeNormal = $("modeNormal"), modeUpper = $("modeUpper"), smaller = $("smaller"), bigger = $("bigger");
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
+  var crop = $("crop"), cropArea = $("cropArea"), cropImg = $("cropImg"), frame = $("frame");
+  var cropControls = $("cropControls"), mainControls = $("mainControls"), cropGo = $("cropGo"), cropCancel = $("cropCancel"), cropAll = $("cropAll");
   var pasteBtn = $("pasteBtn"), gearBtn = $("gearBtn"), scrim = $("scrim"), closeBtn = $("closeBtn"), voicesEl = $("voices");
 
   var ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>';
@@ -610,49 +659,163 @@
   }
 
   // Foto verkleinern und in Graustufen umwandeln: schneller und meist genauer
-  function prepare(file){
+  function loadImage(file){
     return new Promise(function(resolve, reject){
       var img = new Image();
       var url = URL.createObjectURL(file);
-      img.onload = function(){
-        var max = 2400, w = img.naturalWidth, h = img.naturalHeight;
-        var sc = Math.min(1, max / Math.max(w, h));
-        var c = document.createElement("canvas");
-        c.width = Math.round(w * sc); c.height = Math.round(h * sc);
-        var g = c.getContext("2d");
-        g.drawImage(img, 0, 0, c.width, c.height);
-        var d = g.getImageData(0, 0, c.width, c.height), px = d.data;
-        var lo = 255, hi = 0, i, v, gray = new Uint8ClampedArray(px.length / 4);
-        for(i = 0; i < gray.length; i++){
-          // Mischung aus Helligkeit und dunkelstem Farbkanal: farbige Kästen werden heller, schwarze Schrift bleibt dunkel
-          v = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
-          gray[i] = 0.5 * v + 0.5 * Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
-        }
-        // Kontrast strecken (1 % ganz dunkel, 1 % ganz hell ignorieren)
-        var hist = new Uint32Array(256); for(i = 0; i < gray.length; i++) hist[gray[i]]++;
-        var cut = gray.length * 0.01, acc = 0;
-        for(lo = 0; lo < 255 && (acc += hist[lo]) < cut; lo++);
-        acc = 0;
-        for(hi = 255; hi > 0 && (acc += hist[hi]) < cut; hi--);
-        var span = Math.max(40, hi - lo);
-        for(i = 0; i < gray.length; i++){
-          v = (gray[i] - lo) * 255 / span;
-          px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = v;
-        }
-        g.putImageData(d, 0, 0);
-        resolve({ canvas: c, url: url });
-      };
+      img.onload = function(){ resolve({ img: img, url: url }); };
       img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("bild")); };
       img.src = url;
     });
   }
 
+  // Ausschnitt (r in Anteilen 0…1) herausschneiden, verkleinern/vergrößern und in Graustufen umwandeln
+  function prepare(img, r){
+    var nw = img.naturalWidth, nh = img.naturalHeight;
+    var sx = Math.round(r.x * nw), sy = Math.round(r.y * nh);
+    var sw = Math.max(1, Math.round(r.w * nw)), sh = Math.max(1, Math.round(r.h * nh));
+    // kleine Ausschnitte etwas vergrößern, große verkleinern
+    var sc = Math.min(2, 2400 / Math.max(sw, sh));
+    var c = document.createElement("canvas");
+    c.width = Math.round(sw * sc); c.height = Math.round(sh * sc);
+    var g = c.getContext("2d");
+    g.imageSmoothingQuality = "high";
+    g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    var preview = c.toDataURL("image/jpeg", 0.7);
+    var d = g.getImageData(0, 0, c.width, c.height), px = d.data;
+    var lo = 255, hi = 0, i, v, gray = new Uint8ClampedArray(px.length / 4);
+    for(i = 0; i < gray.length; i++){
+      // Mischung aus Helligkeit und dunkelstem Farbkanal: farbige Kästen werden heller, schwarze Schrift bleibt dunkel
+      v = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+      gray[i] = 0.5 * v + 0.5 * Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
+    }
+    // Kontrast strecken (1 % ganz dunkel, 1 % ganz hell ignorieren)
+    var hist = new Uint32Array(256); for(i = 0; i < gray.length; i++) hist[gray[i]]++;
+    var cut = gray.length * 0.01, acc = 0;
+    for(lo = 0; lo < 255 && (acc += hist[lo]) < cut; lo++);
+    acc = 0;
+    for(hi = 255; hi > 0 && (acc += hist[hi]) < cut; hi--);
+    var span = Math.max(40, hi - lo);
+    for(i = 0; i < gray.length; i++){
+      v = (gray[i] - lo) * 255 / span;
+      px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = v;
+    }
+    g.putImageData(d, 0, 0);
+    return { canvas: c, preview: preview };
+  }
+
+  /* ---------- Bereich auf dem Foto wählen ---------- */
+  var cropState = null;   // { img, url, r: {x,y,w,h} in Anteilen, box: angezeigtes Bild in px }
+  var MIN = 0.06;
+
+  function layoutCrop(){
+    if(!cropState) return;
+    var aw = cropArea.clientWidth, ah = cropArea.clientHeight;
+    var iw = cropState.img.naturalWidth, ih = cropState.img.naturalHeight;
+    var sc = Math.min(aw / iw, ah / ih);
+    var w = iw * sc, h = ih * sc, x = (aw - w) / 2, y = (ah - h) / 2;
+    cropState.box = { x: x, y: y, w: w, h: h };
+    cropImg.style.left = x + "px"; cropImg.style.top = y + "px";
+    cropImg.style.width = w + "px"; cropImg.style.height = h + "px";
+    drawFrame();
+  }
+  function drawFrame(){
+    var b = cropState.box, r = cropState.r;
+    frame.style.left = (b.x + r.x * b.w) + "px";
+    frame.style.top = (b.y + r.y * b.h) + "px";
+    frame.style.width = (r.w * b.w) + "px";
+    frame.style.height = (r.h * b.h) + "px";
+  }
+  function showCrop(on){
+    crop.hidden = !on;
+    cropControls.hidden = !on;
+    mainControls.hidden = on;
+    if(on){ empty.hidden = true; }
+  }
+  function startCrop(loaded){
+    cropState = { img: loaded.img, url: loaded.url, r: { x: 0.05, y: 0.05, w: 0.9, h: 0.9 } };
+    cropImg.src = loaded.url;
+    showCrop(true);
+    layoutCrop();
+  }
+  function endCrop(keepPhoto){
+    if(cropState && !keepPhoto) URL.revokeObjectURL(cropState.url);
+    cropState = null; cropImg.removeAttribute("src");
+    showCrop(false);
+  }
+
+  // Ziehen: an einer Ecke = Größe ändern, im Rahmen = verschieben, daneben = neuen Rahmen aufziehen
+  var drag = null;
+  function pt(e){
+    var a = cropArea.getBoundingClientRect(), b = cropState.box;
+    return { x: (e.clientX - a.left - b.x) / b.w, y: (e.clientY - a.top - b.y) / b.h };
+  }
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+  cropArea.addEventListener("pointerdown", function(e){
+    if(!cropState) return;
+    e.preventDefault();
+    var p = pt(e), r = cropState.r;
+    var h = e.target.dataset && e.target.dataset.h;
+    if(h) drag = { mode: h };
+    else if(e.target === frame) drag = { mode: "move", dx: p.x - r.x, dy: p.y - r.y };
+    else{
+      var x = clamp(p.x, 0, 1), y = clamp(p.y, 0, 1);
+      drag = { mode: "new", ax: x, ay: y };
+      cropState.r = { x: x, y: y, w: 0, h: 0 };
+    }
+    try{ cropArea.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  cropArea.addEventListener("pointermove", function(e){
+    if(!drag || !cropState) return;
+    var p = pt(e), r = cropState.r;
+    var x = clamp(p.x, 0, 1), y = clamp(p.y, 0, 1);
+    if(drag.mode === "move"){
+      r.x = clamp(p.x - drag.dx, 0, 1 - r.w);
+      r.y = clamp(p.y - drag.dy, 0, 1 - r.h);
+    }else if(drag.mode === "new"){
+      r.x = Math.min(drag.ax, x); r.y = Math.min(drag.ay, y);
+      r.w = Math.abs(x - drag.ax); r.h = Math.abs(y - drag.ay);
+    }else{
+      var L = r.x, T = r.y, R = r.x + r.w, B = r.y + r.h;
+      if(drag.mode.indexOf("w") >= 0) L = Math.min(x, R - MIN);
+      if(drag.mode.indexOf("e") >= 0) R = Math.max(x, L + MIN);
+      if(drag.mode.indexOf("n") >= 0) T = Math.min(y, B - MIN);
+      if(drag.mode.indexOf("s") >= 0) B = Math.max(y, T + MIN);
+      r.x = L; r.y = T; r.w = R - L; r.h = B - T;
+    }
+    drawFrame();
+  });
+  function endDrag(){
+    if(!drag || !cropState) return;
+    var r = cropState.r;
+    if(r.w < MIN || r.h < MIN){        // nur getippt: Rahmen um die Stelle legen
+      var cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+      r.w = Math.max(r.w, 0.3); r.h = Math.max(r.h, 0.2);
+      r.x = clamp(cx - r.w / 2, 0, 1 - r.w); r.y = clamp(cy - r.h / 2, 0, 1 - r.h);
+      drawFrame();
+    }
+    drag = null;
+  }
+  cropArea.addEventListener("pointerup", endDrag);
+  cropArea.addEventListener("pointercancel", endDrag);
+  window.addEventListener("resize", layoutCrop);
+
+  cropCancel.addEventListener("click", function(){ endCrop(false); render(); });
+  cropAll.addEventListener("click", function(){ if(cropState){ cropState.r = { x: 0, y: 0, w: 1, h: 1 }; drawFrame(); } });
+  cropGo.addEventListener("click", function(){
+    if(!cropState) return;
+    var st = cropState;
+    endCrop(true);
+    recognize(st.img, st.url, st.r);
+  });
+
   function setBusy(on){
     busy.hidden = !on;
-    mainBtn.disabled = camSmall.disabled = galleryBtn.disabled = on;
+    mainBtn.disabled = camSmall.disabled = galleryBtn.disabled = pasteBtn.disabled = on;
     if(on){ empty.hidden = true; bar.style.width = "0"; busyText.textContent = "Einen Moment bitte."; }
   }
 
+  // Schritt 1: Foto laden und Bereich wählen lassen
   function handleFile(file){
     if(!file) return;
     stopReading();
@@ -660,36 +823,41 @@
       toast("Die Texterkennung konnte nicht geladen werden. Bitte prüfe die Internetverbindung.", 5000);
       return;
     }
+    getWorker().catch(function(){});   // Texterkennung schon mal vorbereiten
+    loadImage(file).then(startCrop).catch(function(){
+      toast("Das Bild konnte nicht geöffnet werden. Bitte versuch ein anderes.", 5000);
+    });
+  }
+
+  // Schritt 2: gewählten Bereich lesen
+  function recognize(img, url, r){
     setBusy(true);
-    prepare(file).then(function(p){
-      if(photoURL) URL.revokeObjectURL(photoURL);
-      photoURL = p.url;
-      busyPhoto.style.backgroundImage = 'url("' + p.url + '")';
-      onProgress = function(m){
-        var st = STEPS[m.status];
-        if(!st) return;
-        bar.style.width = Math.round((st[0] + (st[1] - st[0]) * (m.progress || 0)) * 100) + "%";
-        busyText.textContent = st[2];
-      };
-      return getWorker().then(function(w){
-        return w.recognize(p.canvas, { rotateAuto: true }, { text: true, blocks: true });
-      });
+    var p = prepare(img, r);
+    if(photoURL) URL.revokeObjectURL(photoURL);
+    photoURL = url;
+    busyPhoto.style.backgroundImage = 'url("' + p.preview + '")';
+    onProgress = function(m){
+      var st = STEPS[m.status];
+      if(!st) return;
+      bar.style.width = Math.round((st[0] + (st[1] - st[0]) * (m.progress || 0)) * 100) + "%";
+      busyText.textContent = st[2];
+    };
+    getWorker().then(function(w){
+      return w.recognize(p.canvas, { rotateAuto: true }, { text: true, blocks: true });
     }).then(function(res){
       var found = toParas(res.data);
       setBusy(false);
       if(!found.length){
         render();
-        toast("Ich konnte keinen Text finden. Halte das iPad ruhig und gerade über die Seite und versuch es nochmal.", 6000);
+        toast("Ich konnte keinen Text finden. Halte das iPad ruhig und genau von oben über die Seite und versuch es nochmal.", 6000);
         return;
       }
       paras = found; resumeFrom = 0;
       scroller.scrollTop = 0;
       save(); render();
-    }).catch(function(err){
+    }).catch(function(){
       setBusy(false); render();
-      toast(err && err.message === "bild"
-        ? "Das Bild konnte nicht geöffnet werden. Bitte versuch ein anderes."
-        : "Beim Lesen ist etwas schiefgegangen. Beim ersten Mal braucht mRead Internet.", 6000);
+      toast("Beim Lesen ist etwas schiefgegangen. Beim ersten Mal braucht mRead Internet.", 6000);
     });
   }
 
@@ -848,7 +1016,7 @@
   if(typeof Tesseract !== "undefined") setTimeout(function(){ getWorker().catch(function(){}); }, 1200);
 
   // für Tests
-  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad };
+  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad, crop: function(){ return cropState && cropState.r; } };
 })();
 </script>
 </body>

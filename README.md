@@ -9,10 +9,11 @@ Eine einfache Web-App fürs iPad, mit der Kinder Fotos von gedruckten Texten mac
 - **Kurzbefehl „mRead Foto“ (empfohlen):** Nutzt die Texterkennung des iPads (Live Text). Sie ist deutlich genauer als die eingebaute und kommt auch mit schrägen oder gewölbten Seiten zurecht. Einrichtung siehe unten.
 
 - **Foto machen:** Der große gelbe Knopf öffnet die Kamera. Über den Bild-Knopf unten links lässt sich auch ein Foto aus der Mediathek wählen.
+- **Bereich wählen:** Nach dem Foto erscheint ein gelber Rahmen. Ihn an den Ecken ziehen, verschieben oder mit dem Finger einen neuen Rahmen aufziehen. Nur der Text darin wird gelesen. „Ganzes Foto“ nimmt alles, der gelbe Haken startet das Lesen.
 - **Eingebaute Texterkennung:** Der Text wird direkt im Browser erkannt (Deutsch). Sie braucht ein gerade von oben aufgenommenes Foto. Bilder und Verzierungen auf der Seite werden weitgehend ignoriert, am Zeilenende getrennte Wörter wieder zusammengesetzt.
 - **Vorlesen:** Der gelbe Abspiel-Knopf liest den ganzen Text vor. Der aktuelle Satz wird hellgelb, das aktuelle Wort kräftig gelb markiert. Stopp hält an, beim nächsten Tippen geht es beim gleichen Satz weiter.
 - **Wort antippen:** Liest genau dieses Wort vor.
-- **Text einfügen** (Klemmbrett-Knopf): Fügt kopierten Text ein, zum Beispiel aus der Kamera-App mit Live Text („Alles kopieren“).
+- **Text einfügen** (Klemmbrett-Knopf): Fügt kopierten Text ein. Damit lässt sich auch mit Apples Texterkennung ein Bereich wählen: Foto in der Fotos-App öffnen, auf den Text tippen und halten, die Auswahl mit den Griffen auf den gewünschten Absatz ziehen, „Kopieren“, dann in mRead einfügen.
 - **Stimme wählen** (Zahnrad): Alle deutschen Stimmen des iPads zum Probehören. Die beste wird automatisch gewählt.
 - **Tempo:** Umschalten zwischen normal und langsam.
 - **A− / A+:** Schrift kleiner oder größer.
