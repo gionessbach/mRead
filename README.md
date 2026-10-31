@@ -15,6 +15,7 @@ Eine einfache Web-App fürs iPad, mit der Kinder Fotos von gedruckten Texten mac
 
   In den Rahmen tippen und ziehen verschiebt ihn, daneben ziehen legt ein neues Rechteck an. „Ganzes Foto“ nimmt alles, der Dreh-Knopf unten links dreht das Foto um 90° (wichtig, wenn der Text quer liegt – sonst kann er nicht erkannt werden), der gelbe Haken startet das Lesen. Die gewählte Form merkt sich mRead.
 - **Eingebaute Texterkennung:** Der Text wird direkt im Browser erkannt (Deutsch). Sie braucht ein gerade von oben aufgenommenes Foto. Auch verstreute Texte wie Beschriftungen neben Bildern werden gefunden und als eigene Bausteine behandelt. Bilder und Verzierungen auf der Seite werden weitgehend ignoriert, am Zeilenende getrennte Wörter wieder zusammengesetzt.
+- **Kinderbuch-Schriften** (Zahnrad, standardmäßig an): mRead nutzt ein eigenes, nachtrainiertes deutsches Erkennungsmodell, das zusätzlich 63 Zier-, Comic-, Schreibschrift-, Handschrift- und Grundschul-Schriften kennt. Bei unbekannten Zierschriften halbiert es die Wortfehler, normale Schrift liest es mindestens so gut. Echte Handschrift deckt es nicht ab. Abschaltbar, dann wird das normale Modell verwendet. Details: [training/README.md](training/README.md).
 - **Automatische Bildaufbereitung:** Vor dem Lesen wird das Foto Stück für Stück aufgehellt und der Kontrast verstärkt. Blasse Schrift, Text in farbigen Kästen und Schatten werden so besser erkannt. Ist das Ergebnis unsicher, liest mRead zusätzlich das unbearbeitete Foto und nimmt das bessere Ergebnis.
 - **Lesereihenfolge wie ein Mensch:** mRead ordnet die Textbausteine nach ihrer Lage auf dem Foto: Bei einer Doppelseite oder echten Spalten erst links, dann rechts; sonst von oben nach unten, nebeneinander von links nach rechts. Sätze, die über mehrere Zeilen oder Bausteine laufen, werden wieder zu einem Satz verbunden.
 - **Absätze wie im Original:** Überschriften, Absätze und Aufzählungspunkte aus dem Foto erscheinen auch in mRead als eigene Absätze. Erkannt werden sie an größerem Zeilenabstand, Einrückung, kurzer letzter Zeile, größerer Schrift oder einem Aufzählungspunkt. Beim Vorlesen gibt es an jedem Absatz eine kleine Pause.
@@ -81,6 +82,6 @@ var EIGENE_WOERTER = ["doofi", "bloedmann"];
 
 ## Technik
 
-Eine einzige Datei (`index.html`) ohne Build-Schritt. Text vom Kurzbefehl kommt über `#t=<URL-codierter Text>` in die Seite. Eingebaute Texterkennung mit [Tesseract.js](https://github.com/naptha/tesseract.js) (läuft im Browser, deutsche Sprachdaten von jsDelivr), Vorlesen mit der Web Speech API, Speicherung in `localStorage`. Gehostet über GitHub Pages.
+Eine einzige Datei (`index.html`) ohne Build-Schritt. Text vom Kurzbefehl kommt über `#t=<URL-codierter Text>` in die Seite. Eingebaute Texterkennung mit [Tesseract.js](https://github.com/naptha/tesseract.js) (läuft im Browser; Kinderbuch-Modell in `tessdata/`, Standardmodell von jsDelivr), Vorlesen mit der Web Speech API, Speicherung in `localStorage`. Gehostet über GitHub Pages.
 
 Gedacht für die private Nutzung auf einem eigenen iPad.

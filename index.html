@@ -223,6 +223,12 @@
   .panel-hint{margin:0;color:var(--muted);font-size:14px;line-height:1.45}
   .x{width:44px;height:44px;border-radius:50%;border:0;background:var(--bg);font-size:20px;cursor:pointer}
   .voices{display:flex;flex-direction:column;gap:8px}
+  .opt{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line);font-size:17px;font-weight:600;cursor:pointer}
+  .opt small{display:block;color:var(--muted);font-size:13px;font-weight:400;margin-top:2px;line-height:1.35}
+  .switch{-webkit-appearance:none;appearance:none;width:54px;height:32px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;transition:background .2s;flex:none;margin:0}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+  .switch:checked{background:var(--ink)}
+  .switch:checked::after{transform:translateX(22px)}
   .voice{
     display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 14px;text-align:left;cursor:pointer;
     border:2px solid var(--line);border-radius:14px;background:var(--sheet);font-size:17px;
@@ -241,7 +247,7 @@
   <div class="bar">
     <div class="brand"><img src="apple-touch-icon.png" alt=""><span>mRead</span></div>
     <div class="group">
-      <button id="gearBtn" class="round" type="button" aria-label="Stimme wählen">
+      <button id="gearBtn" class="round" type="button" aria-label="Einstellungen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
       </button>
       <button id="photoBtn" class="thumb" type="button" aria-label="Foto ansehen" hidden></button>
@@ -365,11 +371,12 @@
 <div class="scrim" id="scrim" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
     <div class="panel-head">
-      <h2 id="panelTitle">Stimme</h2>
+      <h2 id="panelTitle">Einstellungen</h2>
       <button id="closeBtn" class="x" type="button" aria-label="Schließen">✕</button>
     </div>
     <p class="panel-hint">Tippe auf eine Stimme, um sie zu hören und auszuwählen.</p>
     <div class="voices" id="voices" role="radiogroup" aria-label="Deutsche Stimmen"></div>
+    <label class="opt" for="optKids"><span>Kinderbuch-Schriften<small>Erkennung für Schreibschrift, Handschrift-, Comic- und Schulschriften</small></span><input id="optKids" class="switch" type="checkbox"></label>
     <p class="panel-hint">Schönere Stimmen lassen sich auf dem iPad laden: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch. Stimmen mit „Erweitert“ oder „Premium“ klingen am natürlichsten. Danach mRead neu öffnen.</p>
   </div>
 </div>
@@ -448,10 +455,11 @@
   var boxes = null;         // pro Wort die Lage auf dem Foto (Anteile 0…1) – nur bei eingebauter Erkennung
   var photoData = null;     // das gelesene Foto (Ausschnitt) als Bild
   var view = "text";        // "photo" = Foto-Ansicht, "text" = Fließtext
-  var voiceURI = null;      // gewählte Stimme (leer = automatisch die beste)
+  var voiceURI = null;
+  var kidsModel = true;     // nachtrainiertes Modell für Kinderbuch-Schriften      // gewählte Stimme (leer = automatisch die beste)
 
   function save(){
-    var d = {paras:paras, boxes:boxes, photoData:photoData, view:view, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI, cropMode:cropMode};
+    var d = {paras:paras, boxes:boxes, photoData:photoData, view:view, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI, cropMode:cropMode, kidsModel:kidsModel};
     try{ localStorage.setItem("mread", JSON.stringify(d)); }
     catch(e){
       // Foto zu groß für den Speicher: dann ohne Foto speichern
@@ -469,6 +477,7 @@
       }
       upper = !!d.upper; slow = !!d.slow;
       if(d.cropMode === "quad") cropMode = "quad";
+      if(d.kidsModel === false) kidsModel = false;
       if(typeof d.voiceURI === "string") voiceURI = d.voiceURI;
       if(d.sizeIdx >= 0 && d.sizeIdx < sizes.length) sizeIdx = d.sizeIdx;
     }catch(e){}
@@ -525,7 +534,15 @@
 
   /* ---------- Erkannten Text aufräumen ---------- */
   var LETTER = /[A-Za-zÄÖÜäöüß]/;
+  // Ziffern mitten in Wörtern sind fast immer verlesene Buchstaben: "1ST" → "IST", "W0RT" → "WORT"
+  function fixDigits(t){
+    var letters = t.replace(/[^A-Za-zÄÖÜäöüß]/g, "");
+    if(letters.length < 2 || !/[10]/.test(t) || /[2-9]/.test(t)) return t;
+    var upper = letters === letters.toUpperCase();
+    return t.replace(/[10]/g, function(d){ return d === "1" ? (upper ? "I" : "l") : (upper ? "O" : "o"); });
+  }
   function cleanWord(t){
+    t = fixDigits(t);
     return t
       .replace(/[|_~^`´{}\[\]<>\\@#$%&*=+]/g, "")
       .replace(/[‘’‚]/g, "'")
@@ -638,14 +655,15 @@
         var sizeJump = Math.max(l.h, p.h) / Math.max(1, Math.min(l.h, p.h)) > 1.35;
         if(gap < -H) brk = true;                                              // springt nach oben: anderer Block
         if(l.block !== p.block && gap < 0) brk = true;                        // anderer Textblock weiter oben
-        if(l.x0 > p.x1 || l.x1 < p.x0) brk = true;                            // steht ganz woanders (links/rechts daneben)
+        var apart = l.x0 > p.x1 || l.x1 < p.x0;                                // steht ganz woanders (links/rechts daneben)
+        if(apart) brk = true;
         if(gap > Math.max(G * 1.8, G + H * 0.5)) brk = true;                  // größerer Abstand
         if(sizeJump) brk = true;                                              // Überschrift
         if(l.bullet) brk = true;                                              // Aufzählung
         if(END.test(lastWord) && lines.length >= 3 && (p.x1 - p.x0) < W * 0.8) brk = true;   // kurze letzte Zeile
         if(END.test(lastWord) && l.x0 - left > H * 1.2 && l.x0 - p.x0 > H) brk = true;      // eingerückte erste Zeile
         // Satz geht weiter (kleingeschrieben, kein Satzende): kein neuer Absatz
-        if(brk && !sizeJump && !l.bullet && !END.test(lastWord) && /^[a-zäöüß]/.test(l.words[0])) brk = false;
+        if(brk && !apart && !sizeJump && !l.bullet && !END.test(lastWord) && /^[a-zäöüß]/.test(l.words[0])) brk = false;
       }
       if(brk && cur.length){ out.push(cur); outB.push(curB); cur = []; curB = []; }
       l.words.forEach(function(t, k){
@@ -690,17 +708,32 @@
   function extent(items, lo, hi){
     return Math.max.apply(0, items.map(function(it){ return it.r[hi]; })) - Math.min.apply(0, items.map(function(it){ return it.r[lo]; }));
   }
+  // größte Lücke in einer Richtung: liefert { gap, a: Teil davor, b: Teil danach }
+  function bestGap(items, lo, hi){
+    var sorted = items.slice().sort(function(x, y){ return x.r[lo] - y.r[lo]; });
+    var end = sorted[0].r[hi], best = { gap: 0 };
+    for(var i = 1; i < sorted.length; i++){
+      var g = sorted[i].r[lo] - end;
+      if(g > best.gap) best = { gap: g, a: sorted.slice(0, i), b: sorted.slice(i) };
+      end = Math.max(end, sorted[i].r[hi]);
+    }
+    return best;
+  }
   function xycut(items){
     if(items.length <= 1) return items;
     var H = extent(items, 1, 3);
+    // 1) echte Spalten oder Buchseiten (jede Spalte ist hoch): erst links, dann rechts
     var cols = splitBy(items, 0, 2, 0.015);
-    // echte Spalten/Seiten: jede Spalte ist hoch
-    if(cols.length > 1 && cols.every(function(g){ return extent(g, 1, 3) >= H * 0.35; })){
+    var tops = cols.map(function(g){ return Math.min.apply(0, g.map(function(it){ return it.r[1]; })); });
+    if(cols.length > 1 && cols.every(function(g){ return extent(g, 1, 3) >= H * 0.35; }) &&
+       Math.max.apply(0, tops) - Math.min.apply(0, tops) <= H * 0.2){      // Spalten beginnen etwa auf gleicher Höhe
       return [].concat.apply([], cols.map(xycut));
     }
-    var rows = splitBy(items, 1, 3, 0.002);
-    if(rows.length > 1) return [].concat.apply([], rows.map(xycut));
-    if(cols.length > 1) return [].concat.apply([], cols.map(xycut));
+    // 2) sonst an der größten Lücke teilen (waagrecht: oben vor unten, senkrecht: links vor rechts)
+    var gy = bestGap(items, 1, 3), gx = bestGap(items, 0, 2);
+    if(gy.gap > 0.002 && gy.gap >= gx.gap * 0.6) return xycut(gy.a).concat(xycut(gy.b));
+    if(gx.gap > 0.015) return xycut(gx.a).concat(xycut(gx.b));
+    if(gy.gap > 0.002) return xycut(gy.a).concat(xycut(gy.b));
     return items.slice().sort(function(a, b){ return (a.r[1] - b.r[1]) || (a.r[0] - b.r[0]); });
   }
   function arrange(P, B){
@@ -717,7 +750,9 @@
         var lineH = Math.min(prev.r[3] - prev.r[1], it.r[3] - it.r[1]);
         var below = it.r[1] >= prev.r[3] - lineH * 0.5 && it.r[1] - prev.r[3] < Math.max(0.06, lineH * 3);
         var overlapX = Math.min(prev.r[2], it.r[2]) - Math.max(prev.r[0], it.r[0]) > 0;
-        if(!END.test(last) && /^[a-zäöüß]/.test(first) && below && overlapX){
+        var hp = prev.r[3] - prev.r[1], hn = it.r[3] - it.r[1];
+        var tight = it.r[1] - prev.r[3] < lineH * 1.2 && Math.max(hp, hn) / Math.max(0.0001, Math.min(hp, hn)) < 1.6;
+        if(!END.test(last) && below && overlapX && (/^[a-zäöüß]/.test(first) || (tight && /[a-zäöüß,]$/.test(last)))){
           prev.ws = prev.ws.concat(it.ws); prev.bp = prev.bp.concat(it.bp);
           prev.r = [Math.min(prev.r[0], it.r[0]), prev.r[1], Math.max(prev.r[2], it.r[2]), it.r[3]];
           return;
@@ -1257,14 +1292,21 @@
     "initializing api": [0.4, 0.45, "Gleich geht's los …"],
     "recognizing text": [0.45, 1, "Ich lese den Text …"]
   };
+  // Texterkennung starten. Standard ist das für Kinderbücher nachtrainierte deutsche Modell (Ordner "tessdata"),
+  // es kennt zusätzlich Handschrift-, Schreibschrift-, Comic- und Grundschul-Schriften.
+  // Lässt es sich nicht laden, wird das normale deutsche Modell genommen.
+  var KIDS_MODEL = { langPath: new URL("tessdata", location.href).href, cachePath: "mread-kinderbuch-1", gzip: true };
   function getWorker(){
     if(!workerReady){
-      workerReady = Tesseract.createWorker("deu", 1, {
-        logger: function(m){ if(onProgress) onProgress(m); }
-      }).then(function(w){
-        worker = w;
-        return w.setParameters({ preserve_interword_spaces: "1", tessedit_pageseg_mode: "3" }).then(function(){ return w; });
-      }).catch(function(err){ workerReady = null; throw err; });
+      var log = { logger: function(m){ if(onProgress) onProgress(m); } };
+      var make = function(extra){
+        return Tesseract.createWorker("deu", 1, Object.assign({}, log, extra || {})).then(function(w){
+          worker = w;
+          return w.setParameters({ preserve_interword_spaces: "1", tessedit_pageseg_mode: "3" }).then(function(){ return w; });
+        });
+      };
+      workerReady = (kidsModel ? make(KIDS_MODEL).catch(function(){ return make(); }) : make())
+        .catch(function(err){ workerReady = null; throw err; });
     }
     return workerReady;
   }
@@ -1813,7 +1855,14 @@
       voicesEl.appendChild(b);
     });
   }
-  gearBtn.addEventListener("click", function(){ pickVoice(); renderVoices(); scrim.hidden = false; });
+  var optKids = $("optKids");
+  gearBtn.addEventListener("click", function(){ pickVoice(); renderVoices(); optKids.checked = kidsModel; scrim.hidden = false; });
+  optKids.addEventListener("change", function(){
+    kidsModel = optKids.checked; save();
+    // Erkennung beim nächsten Foto mit dem gewählten Modell neu starten
+    if(worker){ try{ worker.terminate(); }catch(e){} }
+    worker = null; workerReady = null;
+  });
   closeBtn.addEventListener("click", function(){ scrim.hidden = true; });
   scrim.addEventListener("click", function(e){ if(e.target === scrim) scrim.hidden = true; });
 
@@ -1850,7 +1899,7 @@
   if(typeof Tesseract !== "undefined") setTimeout(function(){ getWorker().catch(function(){}); }, 1200);
 
   // für Tests
-  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad, prepare: prepare, crop: function(){ return cropState && cropState.q; } };
+  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad, prepare: prepare, merge: mergeData, arrange: arrange, paraRect: paraRect, xycut: xycut, crop: function(){ return cropState && cropState.q; } };
 })();
 </script>
 </body>
