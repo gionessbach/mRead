@@ -137,6 +137,19 @@
   /* Foto-Ansicht: Text wird direkt auf dem Foto markiert */
   .photoview{position:absolute;inset:0;background:#1E1E19;overflow:hidden;touch-action:none}
   .pv-inner{position:absolute;transform-origin:0 0;will-change:transform}
+  .pv-redo{
+    position:absolute;top:9px;left:12px;height:40px;padding:0 12px;border-radius:999px;border:0;cursor:pointer;z-index:3;
+    display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);color:#F1EFE6;font-size:15px;font-weight:600;
+  }
+  .pv-redo svg{width:20px;height:20px}
+  .pv-redo[aria-pressed="true"]{background:var(--yellow);color:var(--ink)}
+  .photoview.selecting .pl{cursor:crosshair}
+  .photoview.selecting{cursor:crosshair}
+  .sel{position:absolute;border:3px solid var(--yellow);border-radius:6px;background:rgba(253,208,2,.12);pointer-events:none;
+       box-shadow:0 0 0 2000px rgba(20,20,16,.35)}
+  .sel.reading{animation:selpulse 1s ease-in-out infinite alternate}
+  @keyframes selpulse{from{background:rgba(253,208,2,.08)}to{background:rgba(253,208,2,.35)}}
+  @media (prefers-reduced-motion:reduce){ .sel.reading{animation:none} }
   .pv-zoom{
     position:absolute;right:12px;bottom:12px;width:52px;height:52px;border-radius:50%;border:0;cursor:pointer;z-index:2;
     background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.35);
@@ -250,6 +263,9 @@
     <div class="photoview" id="photoView" hidden>
       <div class="pv-inner" id="pvInner"><img id="pvImg" alt="Dein Foto"></div>
       <div class="pv-tip" id="pvTip" title="Mit zwei Fingern kannst du das Foto vergrößern."><svg viewBox="0 0 24 24"><path d="M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Tippe auf einen gelb markierten Text, dann lese ich ihn vor.</div>
+      <button id="pvRedo" class="pv-redo" type="button" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M15.5 10.5a4 4 0 1 0 .5 3"/><path d="M16 8.5v2.5h-2.5"/></svg>Neu lesen
+      </button>
       <button id="pvZoom" class="pv-zoom" type="button" aria-label="Ganzes Foto zeigen" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M7.5 10.5h6"/></svg>
       </button>
@@ -355,7 +371,8 @@
   var camInput = $("camInput"), galleryInput = $("galleryInput");
   var modeNormal = $("modeNormal"), modeUpper = $("modeUpper"), smaller = $("smaller"), bigger = $("bigger");
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
-  var pvMark = $("pvMark"), showMarks = true, pvZoom = $("pvZoom");
+  var pvMark = $("pvMark"), showMarks = true, pvZoom = $("pvZoom"), pvRedo = $("pvRedo");
+  var selecting = false, selEl = null, selBusy = false;
   var zoom = { s: 1, tx: 0, ty: 0 }, base = null;   // base: Lage des Fotos ohne Zoom
   var photoView = $("photoView"), pvInner = $("pvInner"), pvImg = $("pvImg"), pvTip = $("pvTip");
   var viewToggle = $("viewToggle"), viewPhotoBtn = $("viewPhoto"), viewTextBtn = $("viewText");
@@ -644,8 +661,9 @@
       var sc = Math.min(aw / iw, ah / ih), w = iw * sc, h = ih * sc;
       pvInner.style.width = w + "px"; pvInner.style.height = h + "px";
       pvInner.style.left = (pad + (aw - w) / 2) + "px"; pvInner.style.top = (top + (ah - h) / 2) + "px";
+      var same = base && Math.abs(base.w - w) < 0.5 && Math.abs(base.h - h) < 0.5;
       base = { x: pad + (aw - w) / 2, y: top + (ah - h) / 2, w: w, h: h };
-      setZoom(1, 0, 0);
+      if(same) setZoom(zoom.s, zoom.tx, zoom.ty); else setZoom(1, 0, 0);
     }
     if(pvImg.complete && pvImg.naturalWidth) go(); else pvImg.onload = go;
   }
@@ -683,7 +701,14 @@
     if(Object.keys(ptrs).length === 1) downTarget = e.target;
     try{ photoView.setPointerCapture(e.pointerId); }catch(err){}
     var ids = Object.keys(ptrs);
-    if(ids.length === 1){ moved = 0; gesture = { pan: true, start: ptrs[ids[0]], tx: zoom.tx, ty: zoom.ty }; }
+    if(ids.length === 1 && selecting && !selBusy){
+      moved = 0;
+      var n = toPhoto(ptrs[ids[0]]);
+      gesture = { select: true, ax: n.x, ay: n.y };
+      if(!selEl){ selEl = document.createElement("div"); selEl.className = "sel"; pvInner.appendChild(selEl); }
+      drawSel(n.x, n.y, n.x, n.y);
+    }
+    else if(ids.length === 1){ moved = 0; gesture = { pan: true, start: ptrs[ids[0]], tx: zoom.tx, ty: zoom.ty }; }
     if(ids.length === 2){
       var a = ptrs[ids[0]], b = ptrs[ids[1]];
       gesture = { pinch: true, d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: zoom.s, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, tx: zoom.tx, ty: zoom.ty };
@@ -701,6 +726,11 @@
       // Punkt unter der Fingermitte festhalten und mit der Mitte mitschieben
       var ix = (gesture.cx - base.x - gesture.tx) / gesture.s, iy = (gesture.cy - base.y - gesture.ty) / gesture.s;
       setZoom(ns, cx - base.x - ix * ns, cy - base.y - iy * ns);
+    }else if(gesture.select){
+      var n = toPhoto(ptrs[e.pointerId]);
+      moved = 99;
+      drawSel(gesture.ax, gesture.ay, n.x, n.y);
+      gesture.bx = n.x; gesture.by = n.y;
     }else if(gesture.pan){
       var p = ptrs[e.pointerId], dx = p.x - gesture.start.x, dy = p.y - gesture.start.y;
       moved = Math.max(moved, Math.hypot(dx, dy));
@@ -708,6 +738,12 @@
     }
   });
   function ptrUp(e){
+    if(gesture && gesture.select && gesture.bx != null){
+      var r = { x0: Math.max(0, Math.min(gesture.ax, gesture.bx)), y0: Math.max(0, Math.min(gesture.ay, gesture.by)),
+                x1: Math.min(1, Math.max(gesture.ax, gesture.bx)), y1: Math.min(1, Math.max(gesture.ay, gesture.by)) };
+      if(r.x1 - r.x0 > 0.02 && r.y1 - r.y0 > 0.01) rereadRegion(r);
+      else if(selEl){ selEl.remove(); selEl = null; }
+    }
     delete ptrs[e.pointerId];
     var ids = Object.keys(ptrs);
     if(ids.length === 1){ var p = ptrs[ids[0]]; gesture = { pan: true, start: p, tx: zoom.tx, ty: zoom.ty }; }
@@ -724,6 +760,85 @@
   // Safari: eigenes Seiten-Zoomen verhindern
   ["gesturestart", "gesturechange"].forEach(function(n){ photoView.addEventListener(n, function(e){ e.preventDefault(); }); });
   pvZoom.addEventListener("click", function(e){ e.stopPropagation(); setZoom(1, 0, 0); });
+
+  /* ---------- Bereich neu lesen: nur diese Stelle erneut erkennen, der Rest bleibt ---------- */
+  var TIP_NORMAL = pvTip.innerHTML;
+  // Punkt in der Foto-Fläche → Anteil auf dem Foto (berücksichtigt den Zoom)
+  function toPhoto(p){
+    return { x: Math.max(0, Math.min(1, (p.x - base.x - zoom.tx) / (zoom.s * base.w))),
+             y: Math.max(0, Math.min(1, (p.y - base.y - zoom.ty) / (zoom.s * base.h))) };
+  }
+  function drawSel(ax, ay, bx, by){
+    var x0 = Math.min(ax, bx), y0 = Math.min(ay, by);
+    selEl.style.left = (x0 * 100) + "%"; selEl.style.top = (y0 * 100) + "%";
+    selEl.style.width = (Math.abs(bx - ax) * 100) + "%"; selEl.style.height = (Math.abs(by - ay) * 100) + "%";
+  }
+  function setSelecting(on){
+    selecting = on;
+    pvRedo.setAttribute("aria-pressed", String(on));
+    photoView.classList.toggle("selecting", on);
+    pvTip.innerHTML = on ? "Zieh einen Rahmen um den Text, der neu gelesen werden soll." : TIP_NORMAL;
+    if(!on && selEl && !selBusy){ selEl.remove(); selEl = null; }
+  }
+  pvRedo.addEventListener("click", function(e){
+    e.stopPropagation();
+    if(selBusy) return;
+    stopReading();
+    setSelecting(!selecting);
+  });
+  function rereadRegion(r){
+    selBusy = true;
+    selEl.classList.add("reading");
+    pvTip.textContent = "Ich lese diesen Bereich neu …";
+    // Ausschnitt aus dem Foto in voller Auflösung (nach dem Neuladen: aus dem gespeicherten Foto)
+    var src = srcCanvas || pvImg;
+    var sw = src.width || src.naturalWidth, sh = src.height || src.naturalHeight;
+    var m = 0.004;
+    var R = { x0: Math.max(0, r.x0 - m), y0: Math.max(0, r.y0 - m), x1: Math.min(1, r.x1 + m), y1: Math.min(1, r.y1 + m) };
+    var cw = (R.x1 - R.x0) * sw, ch = (R.y1 - R.y0) * sh;
+    var k = Math.max(1, Math.min(3, 1800 / Math.max(cw, ch)));     // kleine Bereiche vergrößern
+    var c = document.createElement("canvas");
+    c.width = Math.max(8, Math.round(cw * k)); c.height = Math.max(8, Math.round(ch * k));
+    var g = c.getContext("2d"); g.imageSmoothingQuality = "high";
+    g.drawImage(src, R.x0 * sw, R.y0 * sh, cw, ch, 0, 0, c.width, c.height);
+    var p = processCanvas(c);
+    function done(msg){
+      selBusy = false;
+      if(selEl){ selEl.remove(); selEl = null; }
+      setSelecting(false);
+      if(msg) toast(msg, 4000);
+    }
+    ocr(p, true).then(function(data){
+      var found = toParas(data, c.width, c.height);
+      if(!found.paras.length){ done("Ich habe in diesem Bereich keinen Text gefunden."); return; }
+      // Rahmen der neuen Wörter auf das ganze Foto umrechnen
+      var nb = found.boxes.map(function(bp){ return bp.map(function(bs){ return bs.map(function(b){
+        return [R.x0 + b[0] * (R.x1 - R.x0), R.y0 + b[1] * (R.y1 - R.y0), R.x0 + b[2] * (R.x1 - R.x0), R.y0 + b[3] * (R.y1 - R.y0)];
+      }); }); });
+      // alte Wörter in diesem Bereich entfernen
+      var inside = function(bs){
+        var x = 0, y = 0; bs.forEach(function(b){ x += (b[0] + b[2]) / 2; y += (b[1] + b[3]) / 2; });
+        x /= bs.length; y /= bs.length;
+        return x >= R.x0 && x <= R.x1 && y >= R.y0 && y <= R.y1;
+      };
+      var P = [], B = [];
+      paras.forEach(function(ws, i){
+        var w2 = [], b2 = [];
+        ws.forEach(function(w, j){ var bs = boxes[i][j] || []; if(!bs.length || !inside(bs)){ w2.push(w); b2.push(bs); } });
+        if(w2.length){ P.push(w2); B.push(b2); }
+      });
+      // neue Absätze nach ihrer Höhe auf dem Foto einordnen
+      function topOf(bp){ var t = 1; bp.forEach(function(bs){ (bs || []).forEach(function(b){ t = Math.min(t, b[1]); }); }); return t; }
+      found.paras.forEach(function(ws, i){
+        // hinter den Absatz, der am nächsten darüber beginnt (ohne solchen: ganz nach vorn)
+        var t = topOf(nb[i]), at = 0, best = -1;
+        for(var j = 0; j < B.length; j++){ var tj = topOf(B[j]); if(tj <= t + 0.003 && tj >= best){ best = tj; at = j + 1; } }
+        P.splice(at, 0, ws); B.splice(at, 0, nb[i]);
+      });
+      paras = P; boxes = B; resumeFrom = 0;
+      save(); done(); render();
+    }).catch(function(){ done("Beim Lesen ist etwas schiefgegangen."); });
+  }
 
   // beim Vorlesen: gezoomtes Foto so verschieben, dass das aktuelle Wort sichtbar bleibt
   function followWord(el){
@@ -976,6 +1091,7 @@
 
   photoView.addEventListener("click", function(e){
     if(moved > 8){ moved = 0; return; }       // war ein Verschieben oder Zoomen, kein Tippen
+    if(selecting) return;
     // beim Zoomen hält die Foto-Fläche den Finger fest – dann zählt, wo der Finger aufgesetzt wurde
     var b = e.target.closest(".pl") || (downTarget && downTarget.closest && downTarget.closest(".pl"));
     if(!b) return;
@@ -989,7 +1105,7 @@
     pvMark.setAttribute("aria-pressed", String(showMarks));
     photoView.classList.toggle("clean", !showMarks);
   });
-  function setView(v){ if(view === v) return; stopReading(); view = v; save(); render(); }
+  function setView(v){ if(view === v) return; stopReading(); if(selecting && !selBusy) setSelecting(false); view = v; save(); render(); }
   viewPhotoBtn.addEventListener("click", function(){ setView("photo"); });
   viewTextBtn.addEventListener("click", function(){ setView("text"); });
 
@@ -1038,13 +1154,19 @@
   function prepare(img, q){
     if(!Array.isArray(q)) q = rectQuad(q.x, q.y, q.x + q.w, q.y + q.h);
     var c = warp(img, q);
-    var g = c.getContext("2d");
-    var preview = c.toDataURL("image/jpeg", 0.7);
+    var p = processCanvas(c);
+    p.preview = c.toDataURL("image/jpeg", 0.7);
     // Foto für die Foto-Ansicht: höchstens 1600 Pixel, damit es auf dem iPad gespeichert werden kann
     var ps = Math.min(1, 1600 / Math.max(c.width, c.height)), pc = document.createElement("canvas");
     pc.width = Math.round(c.width * ps); pc.height = Math.round(c.height * ps);
     pc.getContext("2d").drawImage(c, 0, 0, pc.width, pc.height);
-    var photo = pc.toDataURL("image/jpeg", 0.78);
+    p.photo = pc.toDataURL("image/jpeg", 0.78);
+    p.src = c;
+    return p;
+  }
+  // Farbbild → zwei Graustufen-Fassungen für die Erkennung
+  function processCanvas(c){
+    var g = c.getContext("2d");
     var W = c.width, H = c.height;
     var d = g.getImageData(0, 0, W, H), px = d.data;
     var i, v, gray = new Uint8ClampedArray(W * H);
@@ -1053,7 +1175,7 @@
       v = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
       gray[i] = 0.5 * v + 0.5 * Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
     }
-    return { canvas: toCanvas(enhance(gray, W, H), W, H), plain: toCanvas(stretch(gray), W, H), preview: preview, photo: photo };
+    return { canvas: toCanvas(enhance(gray, W, H), W, H), plain: toCanvas(stretch(gray), W, H) };
   }
   function toCanvas(gray, W, H){
     var c = document.createElement("canvas"); c.width = W; c.height = H;
@@ -1346,6 +1468,29 @@
   }
 
   // Schritt 2: gewählten Bereich lesen
+  // Erst die aufbereitete Fassung lesen. Ist das Ergebnis unsicher (oder "both"), zusätzlich die einfache Fassung lesen
+  // und beide zusammenführen. Liefert die Erkennungsdaten.
+  function ocr(p, both, onSecond){
+    var worker1;
+    function score(res){
+      var ws = (res.data.words || []).filter(function(w){ return w.confidence >= 60 && LETTER.test(w.text); });
+      return ws.reduce(function(s, w){ return s + w.text.length; }, 0);
+    }
+    return getWorker().then(function(w){
+      worker1 = w;
+      return w.recognize(p.canvas, { rotateAuto: true }, { text: true, blocks: true });
+    }).then(function(res){
+      if(!both && res.data.confidence >= 85) return res.data;
+      if(onSecond) onSecond();
+      return worker1.recognize(p.plain, { rotateAuto: true }, { text: true, blocks: true }).then(function(res2){
+        // das bessere Ergebnis als Grundlage nehmen und um Wörter ergänzen, die nur das andere gefunden hat
+        var a = score(res2) > score(res) ? res2 : res, b = a === res ? res2 : res;
+        return mergeData(a.data, b.data);
+      });
+    });
+  }
+  var srcCanvas = null;   // gerade gezogenes Foto in voller Auflösung (nur bis zum Neuladen)
+
   function recognize(img, url, q){
     setBusy(true);
     var p = prepare(img, q);
@@ -1358,25 +1503,9 @@
       bar.style.width = Math.round((st[0] + (st[1] - st[0]) * (m.progress || 0)) * 100) + "%";
       busyText.textContent = st[2];
     };
-    var worker1;
-    // Erst die aufbereitete Fassung lesen. Ist das Ergebnis unsicher, zusätzlich die einfache Fassung lesen und die bessere nehmen.
-    function score(res){
-      var ws = (res.data.words || []).filter(function(w){ return w.confidence >= 60 && LETTER.test(w.text); });
-      return ws.reduce(function(s, w){ return s + w.text.length; }, 0);
-    }
-    getWorker().then(function(w){
-      worker1 = w;
-      return w.recognize(p.canvas, { rotateAuto: true }, { text: true, blocks: true });
-    }).then(function(res){
-      if(res.data.confidence >= 85) return res;
-      busyText.textContent = "Ich schaue noch genauer hin …";
-      return worker1.recognize(p.plain, { rotateAuto: true }, { text: true, blocks: true }).then(function(res2){
-        // das bessere Ergebnis als Grundlage nehmen und um Zeilen ergänzen, die nur das andere gefunden hat
-        var a = score(res2) > score(res) ? res2 : res, b = a === res ? res2 : res;
-        return { data: mergeData(a.data, b.data) };
-      });
-    }).then(function(res){
-      var found = toParas(res.data, p.canvas.width, p.canvas.height);
+    ocr(p, false, function(){ busyText.textContent = "Ich schaue noch genauer hin …"; }).then(function(data){
+      srcCanvas = p.src;
+      var found = toParas(data, p.canvas.width, p.canvas.height);
       setBusy(false);
       if(!found.paras.length){
         render();
