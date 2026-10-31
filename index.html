@@ -138,11 +138,20 @@
   .photoview{position:absolute;inset:0;background:#1E1E19;overflow:hidden;touch-action:none}
   .pv-inner{position:absolute;transform-origin:0 0;will-change:transform}
   .pv-redo{
-    position:absolute;top:9px;left:12px;height:40px;padding:0 12px;border-radius:999px;border:0;cursor:pointer;z-index:3;
-    display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);color:#F1EFE6;font-size:15px;font-weight:600;
+    position:absolute;top:7px;left:10px;height:44px;padding:0 16px 0 12px;border-radius:999px;cursor:pointer;z-index:3;
+    display:inline-flex;align-items:center;gap:8px;background:var(--yellow);color:var(--ink);font-size:16px;font-weight:700;
+    border:2px solid var(--yellow);box-shadow:0 3px 0 var(--yellow-deep);
   }
-  .pv-redo svg{width:20px;height:20px}
-  .pv-redo[aria-pressed="true"]{background:var(--yellow);color:var(--ink)}
+  .pv-redo svg{width:22px;height:22px}
+  .pv-redo[aria-pressed="true"]{background:#1E1E19;color:var(--yellow)}
+  .pv-ok,.pv-no{
+    position:absolute;top:7px;height:44px;padding:0 16px;border-radius:999px;cursor:pointer;z-index:3;
+    display:inline-flex;align-items:center;gap:8px;font-size:16px;font-weight:700;border:0;
+  }
+  .pv-ok{right:10px;background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--yellow-deep)}
+  .pv-ok:disabled{opacity:.4;box-shadow:none}
+  .pv-no{right:150px;background:rgba(255,255,255,.14);color:#F1EFE6}
+  .pv-ok svg,.pv-no svg{width:20px;height:20px}
   .photoview.selecting .pl{cursor:crosshair}
   .photoview.selecting{cursor:crosshair}
   .sel{position:absolute;border:3px solid var(--yellow);border-radius:6px;background:rgba(253,208,2,.12);pointer-events:none;
@@ -167,7 +176,7 @@
   .photoview.clean .pl{background:transparent}
   .photoview.clean .pl.active{background:rgba(253,208,2,.45)}
   .pv-tip{
-    position:absolute;left:0;right:0;top:0;height:58px;padding:0 150px;z-index:2;background:#1E1E19;
+    position:absolute;left:0;right:0;top:0;height:58px;padding:0 200px;z-index:2;background:#1E1E19;
     display:flex;align-items:center;justify-content:center;gap:8px;
     color:#F1EFE6;font-family:var(--font-kid);font-weight:700;font-size:18px;text-align:center;pointer-events:none;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -266,7 +275,13 @@
       <div class="pv-inner" id="pvInner"><img id="pvImg" alt="Dein Foto"></div>
       <div class="pv-tip" id="pvTip" title="Mit zwei Fingern kannst du das Foto vergrößern."><svg viewBox="0 0 24 24"><path d="M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Tippe auf einen gelb markierten Text, dann lese ich ihn vor.</div>
       <button id="pvRedo" class="pv-redo" type="button" aria-pressed="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M15.5 10.5a4 4 0 1 0 .5 3"/><path d="M16 8.5v2.5h-2.5"/></svg>Neu lesen
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M15.5 10.5a4 4 0 1 0 .5 3"/><path d="M16 8.5v2.5h-2.5"/></svg>Bereich neu lesen
+      </button>
+      <button id="pvNo" class="pv-no" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>Abbrechen
+      </button>
+      <button id="pvOk" class="pv-ok" type="button" hidden disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Lesen
       </button>
       <button id="pvZoom" class="pv-zoom" type="button" aria-label="Ganzes Foto zeigen" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M7.5 10.5h6"/></svg>
@@ -382,7 +397,8 @@
   var modeNormal = $("modeNormal"), modeUpper = $("modeUpper"), smaller = $("smaller"), bigger = $("bigger");
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
   var pvMark = $("pvMark"), showMarks = true, pvZoom = $("pvZoom"), pvRedo = $("pvRedo");
-  var selecting = false, selEl = null, selBusy = false;
+  var selecting = false, selEl = null, selBusy = false, selRect = null;
+  var pvOk = $("pvOk"), pvNo = $("pvNo");
   var zoom = { s: 1, tx: 0, ty: 0 }, base = null;   // base: Lage des Fotos ohne Zoom
   var photoView = $("photoView"), pvInner = $("pvInner"), pvImg = $("pvImg"), pvTip = $("pvTip");
   var viewToggle = $("viewToggle"), viewPhotoBtn = $("viewPhoto"), viewTextBtn = $("viewText");
@@ -752,8 +768,11 @@
     if(gesture && gesture.select && gesture.bx != null){
       var r = { x0: Math.max(0, Math.min(gesture.ax, gesture.bx)), y0: Math.max(0, Math.min(gesture.ay, gesture.by)),
                 x1: Math.min(1, Math.max(gesture.ax, gesture.bx)), y1: Math.min(1, Math.max(gesture.ay, gesture.by)) };
-      if(r.x1 - r.x0 > 0.02 && r.y1 - r.y0 > 0.01) rereadRegion(r);
-      else if(selEl){ selEl.remove(); selEl = null; }
+      // erst bestätigen lassen: Rahmen bleibt stehen, „Lesen“ wird aktiv; neu ziehen ersetzt ihn
+      if(r.x1 - r.x0 > 0.02 && r.y1 - r.y0 > 0.01){
+        selRect = r; pvOk.disabled = false;
+        pvTip.textContent = "Passt der Rahmen? Dann tippe auf „Lesen“.";
+      }else if(selEl){ selEl.remove(); selEl = null; selRect = null; pvOk.disabled = true; }
     }
     delete ptrs[e.pointerId];
     var ids = Object.keys(ptrs);
@@ -789,8 +808,13 @@
     pvRedo.setAttribute("aria-pressed", String(on));
     photoView.classList.toggle("selecting", on);
     pvTip.innerHTML = on ? "Zieh einen Rahmen um den Text, der neu gelesen werden soll." : TIP_NORMAL;
+    pvRedo.hidden = on; pvMark.hidden = on;
+    pvOk.hidden = pvNo.hidden = !on;
+    pvOk.disabled = true; selRect = null;
     if(!on && selEl && !selBusy){ selEl.remove(); selEl = null; }
   }
+  pvOk.addEventListener("click", function(e){ e.stopPropagation(); if(selRect && !selBusy){ pvOk.disabled = true; pvNo.disabled = true; rereadRegion(selRect); } });
+  pvNo.addEventListener("click", function(e){ e.stopPropagation(); if(!selBusy) setSelecting(false); });
   pvRedo.addEventListener("click", function(e){
     e.stopPropagation();
     if(selBusy) return;
@@ -814,7 +838,7 @@
     g.drawImage(src, R.x0 * sw, R.y0 * sh, cw, ch, 0, 0, c.width, c.height);
     var p = processCanvas(c);
     function done(msg){
-      selBusy = false;
+      selBusy = false; pvNo.disabled = false;
       if(selEl){ selEl.remove(); selEl = null; }
       setSelecting(false);
       if(msg) toast(msg, 4000);
@@ -847,7 +871,13 @@
         P.splice(at, 0, ws); B.splice(at, 0, nb[i]);
       });
       paras = P; boxes = B; resumeFrom = 0;
+      var fresh = [];
+      P.forEach(function(ws, i){ if(found.paras.indexOf(ws) >= 0) fresh.push(i); });
       save(); done(); render();
+      // das neu Erkannte gleich vorlesen
+      var list = [];
+      fresh.forEach(function(pi){ for(var si = paraSent[pi][0]; si < paraSent[pi][1]; si++) list.push(si); });
+      if(list.length) readList(list, false);
     }).catch(function(){ done("Beim Lesen ist etwas schiefgegangen."); });
   }
 
@@ -1054,14 +1084,19 @@
   // Liest ab Satz "from" alle Sätze vor; das aktuelle Wort wird markiert.
   // liest die Sätze von "from" bis vor "to" (ohne "to": bis zum Ende)
   function readFrom(from, to){
-    if(!("speechSynthesis" in window)){ toast("Dieses Gerät kann leider nicht vorlesen.", 4000); return; }
-    speechSynthesis.cancel();
     if(from >= sentences.length) from = 0;
     if(to == null || to > sentences.length) to = sentences.length;
-    var whole = to === sentences.length;
+    var list = [];
+    for(var s = from; s < to; s++) list.push(s);
+    readList(list, to === sentences.length);
+  }
+  // liest die Sätze aus "list" nacheinander vor
+  function readList(list, whole){
+    if(!("speechSynthesis" in window)){ toast("Dieses Gerät kann leider nicht vorlesen.", 4000); return; }
+    speechSynthesis.cancel();
     playing = true; updateButtons();
     var last = null;
-    for(var s = from; s < to; s++){
+    list.forEach(function(s){
       (function(sIdx){
         var idx = sentences[sIdx].filter(function(t){ return speakable(tokens[t].text); });
         if(!idx.length) return;
@@ -1082,7 +1117,7 @@
         speechSynthesis.speak(u);
         last = u;
       })(s);
-    }
+    });
     if(!last){ playing = false; updateButtons(); return; }
     last.onend = function(){ if(playing){ playing = false; resumeFrom = whole ? 0 : resumeFrom; mark(null, null); updateButtons(); } };
   }
