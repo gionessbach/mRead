@@ -400,54 +400,85 @@
       .trim();
   }
   // Tesseract-Ergebnis → Absätze aus Wörtern. Unsichere Zeilen (z. B. aus Bildern) fallen weg.
+  // Absätze werden aus der Lage der Zeilen auf dem Foto bestimmt: größerer Abstand, Einrückung,
+  // kurze letzte Zeile, andere Schriftgröße (Überschrift) oder Aufzählungspunkt beginnen einen neuen Absatz.
+  function median(a){ if(!a.length) return 0; var b = a.slice().sort(function(x, y){ return x - y; }); return b[Math.floor(b.length / 2)]; }
+  function pct(a, q){ if(!a.length) return 0; var b = a.slice().sort(function(x, y){ return x - y; }); return b[Math.min(b.length - 1, Math.floor(b.length * q))]; }
+  var END = /[.!?:…]["“”»«)]*$/;
+
   function toParas(data){
-    var out = [];
+    // 1) Zeilen einsammeln und säubern
+    var lines = [];
     (data.paragraphs || []).forEach(function(p){
-      var words = [];
       (p.lines || []).forEach(function(line){
         var lw = (line.words || []).filter(function(w){ return w.text && w.text.trim(); });
         if(!lw.length) return;
         var letters = lw.map(function(w){ return w.text; }).join("").replace(/[^A-Za-zÄÖÜäöüß]/g, "").length;
         var avg = lw.reduce(function(s, w){ return s + w.confidence; }, 0) / lw.length;
         if(avg < 55 || letters < 2) return;                       // Zeile ist vermutlich kein Text
+        // Aufzählungspunkt: Tesseract liest ihn oft als ".", "-", "·" oder "»"
+        var first = lw[0].text.trim();
+        var bullet = /^[•·▪●◦■►‣∙]/.test(first) || (lw.length > 2 && /^[.,:;\-–—»*°]$/.test(first));
+        var ws = [];
         lw.forEach(function(w){
           var t = cleanWord(w.text.replace(INVISIBLE, ""));
           if(!t || isJunk(t)) return;
           if(w.confidence < 35 && !LETTER.test(t)) return;         // einzelne Krümel
+          if(/^[0-9]$/.test(t) && w.confidence < 85) return;       // einzelne, unsichere Ziffer
           if(!LETTER.test(t) && !/^[0-9]+[.,:]?$/.test(t) && !/^[–—-]$/.test(t)) return;
-          // Trennstrich am Zeilenende: "Schmet-" + "terling" → "Schmetterling"
-          var prev = words[words.length - 1];
-          if(prev && prev.joinNext){
-            words[words.length - 1] = { text: prev.text.slice(0, -1) + t };
-          }else{
-            words.push({ text: t });
-          }
+          ws.push(t);
         });
-        var last = words[words.length - 1];
-        if(last && /[A-Za-zÄÖÜäöüß]-$/.test(last.text)) last.joinNext = true;
+        if(!ws.length) return;
+        var hs = lw.filter(function(w){ return LETTER.test(w.text); }).map(function(w){ return w.bbox.y1 - w.bbox.y0; });
+        lines.push({ words: ws, x0: line.bbox.x0, x1: line.bbox.x1, y0: line.bbox.y0, y1: line.bbox.y1,
+                     h: median(hs) || (line.bbox.y1 - line.bbox.y0), bullet: bullet });
       });
-      if(!words.length) return;
-      // Tesseract trennt manchmal mitten im Satz einen neuen Absatz ab: dann wieder anhängen
-      var prevP = out[out.length - 1];
-      var first = words[0].text;
-      if(prevP){
-        var tail = prevP[prevP.length - 1];
-        if(tail.joinNext && /^[a-zäöüß]/.test(first)){
-          prevP[prevP.length - 1] = { text: tail.text.slice(0, -1) + first, joinNext: words[0].joinNext };
-          words.shift();
-          Array.prototype.push.apply(prevP, words);
-          return;
-        }
-        if(!/[.!?…:"“”»«)]$/.test(tail.text) && /^[a-zäöüß]/.test(first)){
-          Array.prototype.push.apply(prevP, words);
-          return;
-        }
+    });
+    if(!lines.length) return [];
+
+    // 2) typische Werte der Seite
+    var H = median(lines.map(function(l){ return l.h; }));
+    var gaps = [];
+    for(var i = 1; i < lines.length; i++){
+      var g = lines[i].y0 - lines[i - 1].y1;
+      if(g > 0 && g < H * 3) gaps.push(g);
+    }
+    var G = median(gaps) || H * 0.4;
+    var widths = lines.map(function(l){ return l.x1 - l.x0; });
+    var W = pct(widths, 0.75);
+    var left = pct(lines.map(function(l){ return l.x0; }), 0.2);
+
+    // 3) Absatzgrenzen bestimmen
+    var out = [], cur = [];
+    lines.forEach(function(l, i){
+      var p = lines[i - 1];
+      var brk = false;
+      if(p){
+        var gap = l.y0 - p.y1;
+        var lastWord = cur[cur.length - 1] || "";
+        var sizeJump = Math.max(l.h, p.h) / Math.max(1, Math.min(l.h, p.h)) > 1.3;
+        if(gap < -H) brk = true;                                              // springt nach oben: anderer Block
+        if(gap > Math.max(G * 1.8, G + H * 0.5)) brk = true;                  // größerer Abstand
+        if(sizeJump) brk = true;                                              // Überschrift
+        if(l.bullet) brk = true;                                              // Aufzählung
+        if(END.test(lastWord) && lines.length >= 3 && (p.x1 - p.x0) < W * 0.8) brk = true;   // kurze letzte Zeile
+        if(END.test(lastWord) && l.x0 - left > H * 1.2 && l.x0 - p.x0 > H) brk = true;      // eingerückte erste Zeile
+        // Satz geht weiter (kleingeschrieben, kein Satzende): kein neuer Absatz
+        if(brk && !sizeJump && !l.bullet && !END.test(lastWord) && /^[a-zäöüß]/.test(l.words[0])) brk = false;
       }
-      out.push(words);
+      if(brk && cur.length){ out.push(cur); cur = []; }
+      l.words.forEach(function(t, k){
+        var prev = cur[cur.length - 1];
+        // Trennstrich am Zeilenende: "Schmet-" + "terling" → "Schmetterling"
+        if(k === 0 && prev && /[A-Za-zÄÖÜäöüß]-$/.test(prev) && /^[a-zäöüß]/.test(t) && !/^(und|oder|bis|sowie)$/.test(t.replace(/[.,!?;:]$/, ""))){
+          cur[cur.length - 1] = prev.slice(0, -1) + t;
+        }else{
+          cur.push(t);
+        }
+      });
     });
-    return out.map(function(ws){
-      return ws.map(function(w){ return censor(w.joinNext ? w.text.replace(/-$/, "") : w.text); });
-    });
+    if(cur.length) out.push(cur);
+    return out.map(function(ws){ return ws.map(censor); });
   }
 
   /* ---------- Darstellung ---------- */
