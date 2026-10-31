@@ -134,6 +134,23 @@
 
   .file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 
+  /* Foto-Ansicht: Text wird direkt auf dem Foto markiert */
+  .photoview{position:absolute;inset:0;background:#1E1E19;overflow:hidden}
+  .pv-inner{position:absolute}
+  .pv-inner img{position:absolute;inset:0;width:100%;height:100%;-webkit-user-drag:none;pointer-events:none;border-radius:4px}
+  .pb{position:absolute;border-radius:4px;cursor:pointer;transition:background .12s,box-shadow .12s}
+  .pb::before{content:"";position:absolute;inset:-6px -3px}        /* größere Tippfläche */
+  .pb.scur{background:rgba(255,231,102,.28);box-shadow:0 0 0 2px rgba(253,208,2,.55)}
+  .pb.cur{background:rgba(253,208,2,.5);box-shadow:0 0 0 3px var(--yellow),0 0 18px 4px rgba(253,208,2,.65)}
+  .pb.masked{background:rgba(38,38,31,.85)}
+  .pv-tip{
+    position:absolute;left:50%;bottom:14px;transform:translateX(-50%);max-width:calc(100% - 32px);
+    background:rgba(255,255,255,.92);color:var(--ink);font-family:var(--font-kid);font-weight:700;font-size:17px;
+    padding:7px 14px;border-radius:999px;text-align:center;pointer-events:none;transition:opacity .4s;
+  }
+  .viewtoggle button{min-width:0;padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-size:20px}
+  .viewtoggle svg{width:26px;height:26px}
+
   /* Bereich auf dem Foto wählen */
   .crop{position:absolute;inset:0;background:#1E1E19;z-index:2;touch-action:none}
   .crop-tip{
@@ -193,11 +210,19 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
       </button>
       <button id="photoBtn" class="thumb" type="button" aria-label="Foto ansehen" hidden></button>
-      <div class="toggle" role="group" aria-label="Schriftgröße">
+      <div class="toggle viewtoggle" id="viewToggle" role="group" aria-label="Ansicht" hidden>
+        <button id="viewPhoto" type="button" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>Foto
+        </button>
+        <button id="viewText" type="button" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 11h16M4 16h11"/></svg>Text
+        </button>
+      </div>
+      <div class="toggle" id="sizeToggle" role="group" aria-label="Schriftgröße">
         <button id="smaller" type="button" aria-label="Schrift kleiner">A−</button>
         <button id="bigger" type="button" aria-label="Schrift größer">A+</button>
       </div>
-      <div class="toggle" role="group" aria-label="Schreibweise">
+      <div class="toggle" id="caseToggle" role="group" aria-label="Schreibweise">
         <button id="modeNormal" type="button" aria-pressed="true">Abc</button>
         <button id="modeUpper" type="button" aria-pressed="false">ABC</button>
       </div>
@@ -206,6 +231,11 @@
 
   <main class="stage">
     <div class="scroller" id="scroller"><div class="text" id="text"></div></div>
+
+    <div class="photoview" id="photoView" hidden>
+      <div class="pv-inner" id="pvInner"><img id="pvImg" alt="Dein Foto"></div>
+      <div class="pv-tip" id="pvTip">Tippe auf einen Text, dann lese ich ihn vor.</div>
+    </div>
 
     <div class="empty" id="empty">
       <svg viewBox="0 0 120 120" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -308,6 +338,9 @@
   var camInput = $("camInput"), galleryInput = $("galleryInput");
   var modeNormal = $("modeNormal"), modeUpper = $("modeUpper"), smaller = $("smaller"), bigger = $("bigger");
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
+  var photoView = $("photoView"), pvInner = $("pvInner"), pvImg = $("pvImg"), pvTip = $("pvTip");
+  var viewToggle = $("viewToggle"), viewPhotoBtn = $("viewPhoto"), viewTextBtn = $("viewText");
+  var sizeToggle = $("sizeToggle"), caseToggle = $("caseToggle");
   var crop = $("crop"), cropArea = $("cropArea"), cropImg = $("cropImg"), frame = $("frame");
   var cropControls = $("cropControls"), mainControls = $("mainControls"), cropGo = $("cropGo"), cropCancel = $("cropCancel"), cropAll = $("cropAll");
   var pasteBtn = $("pasteBtn"), gearBtn = $("gearBtn"), scrim = $("scrim"), closeBtn = $("closeBtn"), voicesEl = $("voices");
@@ -325,16 +358,28 @@
   var sizes = [32, 40, 48, 58, 70, 84], sizeIdx = 2;
   var photoURL = null;
   var playing = false, resumeFrom = 0;
+  var boxes = null;         // pro Wort die Lage auf dem Foto (Anteile 0…1) – nur bei eingebauter Erkennung
+  var photoData = null;     // das gelesene Foto (Ausschnitt) als Bild
+  var view = "text";        // "photo" = Foto-Ansicht, "text" = Fließtext
   var voiceURI = null;      // gewählte Stimme (leer = automatisch die beste)
 
   function save(){
-    try{ localStorage.setItem("mread", JSON.stringify({paras:paras, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI})); }catch(e){}
+    var d = {paras:paras, boxes:boxes, photoData:photoData, view:view, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI};
+    try{ localStorage.setItem("mread", JSON.stringify(d)); }
+    catch(e){
+      // Foto zu groß für den Speicher: dann ohne Foto speichern
+      d.photoData = null; d.boxes = null; d.view = "text";
+      try{ localStorage.setItem("mread", JSON.stringify(d)); }catch(e2){}
+    }
   }
   function load(){
     try{
       var d = JSON.parse(localStorage.getItem("mread") || "null");
       if(!d) return;
       if(Array.isArray(d.paras)) paras = d.paras.filter(Array.isArray);
+      if(Array.isArray(d.boxes) && d.boxes.length === paras.length && typeof d.photoData === "string"){
+        boxes = d.boxes; photoData = d.photoData; view = d.view === "text" ? "text" : "photo";
+      }
       upper = !!d.upper; slow = !!d.slow;
       if(typeof d.voiceURI === "string") voiceURI = d.voiceURI;
       if(d.sizeIdx >= 0 && d.sizeIdx < sizes.length) sizeIdx = d.sizeIdx;
@@ -405,28 +450,61 @@
   function median(a){ if(!a.length) return 0; var b = a.slice().sort(function(x, y){ return x - y; }); return b[Math.floor(b.length / 2)]; }
   function pct(a, q){ if(!a.length) return 0; var b = a.slice().sort(function(x, y){ return x - y; }); return b[Math.min(b.length - 1, Math.floor(b.length * q))]; }
   var END = /[.!?:…]["“”»«)]*$/;
+  var ROT_SIGN = 1;
 
-  function toParas(data){
+  // W, H: Größe des gelesenen Bildes – damit werden die Wortrahmen in Anteile (0…1) umgerechnet
+  function toParas(data, W, H0){
+    W = W || 1; H0 = H0 || 1;
+    // Hat die Erkennung das Bild leicht gedreht, die Rahmen zurückdrehen
+    var ang = -(data.rotateRadians || 0) * ROT_SIGN, ca = Math.cos(ang), sa = Math.sin(ang);
+    function box(b){
+      var pts = [[b.x0, b.y0], [b.x1, b.y0], [b.x0, b.y1], [b.x1, b.y1]].map(function(q){
+        var dx = q[0] - W / 2, dy = q[1] - H0 / 2;
+        return [W / 2 + dx * ca - dy * sa, H0 / 2 + dx * sa + dy * ca];
+      });
+      var xs = pts.map(function(q){ return q[0]; }), ys = pts.map(function(q){ return q[1]; });
+      return [Math.min.apply(0, xs) / W, Math.min.apply(0, ys) / H0, Math.max.apply(0, xs) / W, Math.max.apply(0, ys) / H0]
+        .map(function(v){ return Math.round(Math.max(0, Math.min(1, v)) * 10000) / 10000; });
+    }
     // 1) Zeilen einsammeln und säubern
-    var lines = [];
-    (data.paragraphs || []).forEach(function(p){
+    var lines = [], blockNo = -1;
+    (data.blocks || [{ paragraphs: data.paragraphs || [] }]).forEach(function(bl){ blockNo++;
+    (bl.paragraphs || []).forEach(function(p){
+      // Zeilen mit großer Lücke (z. B. zwei Beschriftungen auf gleicher Höhe) in Stücke teilen
+      var parts = [];
       (p.lines || []).forEach(function(line){
+        var ws = (line.words || []).filter(function(w){ return w.text && w.text.trim() && w.confidence >= 45; });
+        var hh = median(ws.map(function(w){ return w.bbox.y1 - w.bbox.y0; })) || 20;
+        var cur = { words: [] };
+        (line.words || []).forEach(function(w){
+          var prev = cur.words.filter(function(x){ return x.confidence >= 45; }).slice(-1)[0];
+          if(prev && w.confidence >= 45 && w.bbox.x0 - prev.bbox.x1 > hh * 2.5){ parts.push(cur); cur = { words: [] }; }
+          cur.words.push(w);
+        });
+        parts.push(cur);
+      });
+      parts.forEach(function(line){
         var lw = (line.words || []).filter(function(w){ return w.text && w.text.trim(); });
         if(!lw.length) return;
+        // unsichere Wörter einzeln aussortieren (Krümel aus Bildern), sichere Wörter derselben Zeile behalten
+        lw = lw.filter(function(w){
+          var n = w.text.replace(/[^A-Za-zÄÖÜäöüß]/g, "").length;
+          return w.confidence >= 60 || (w.confidence >= 45 && n >= 4) || (/^[0-9]+[.,:]?$/.test(w.text) && w.confidence >= 80);
+        });
+        if(!lw.length) return;
         var letters = lw.map(function(w){ return w.text; }).join("").replace(/[^A-Za-zÄÖÜäöüß]/g, "").length;
-        var avg = lw.reduce(function(s, w){ return s + w.confidence; }, 0) / lw.length;
-        if(avg < 55 || letters < 2) return;                       // Zeile ist vermutlich kein Text
+        if(letters < 2) return;                                    // Zeile ist vermutlich kein Text
         // Aufzählungspunkt: Tesseract liest ihn oft als ".", "-", "·" oder "»"
         var first = lw[0].text.trim();
         var bullet = /^[•·▪●◦■►‣∙]/.test(first) || (lw.length > 2 && /^[.,:;\-–—»*°]$/.test(first));
-        var ws = [];
+        var ws = [], bs = [];
         lw.forEach(function(w){
           var t = cleanWord(w.text.replace(INVISIBLE, ""));
           if(!t || isJunk(t)) return;
           if(w.confidence < 35 && !LETTER.test(t)) return;         // einzelne Krümel
           if(/^[0-9]$/.test(t) && w.confidence < 85) return;       // einzelne, unsichere Ziffer
           if(!LETTER.test(t) && !/^[0-9]+[.,:]?$/.test(t) && !/^[–—-]$/.test(t)) return;
-          ws.push(t);
+          ws.push(t); bs.push([box(w.bbox)]);
         });
         if(!ws.length) return;
         // Schriftgröße schätzen: Wörter mit Ober- und Unterlängen auf eine gemeinsame Höhe umrechnen
@@ -437,11 +515,17 @@
           if(asc || desc) return h;
           return h * 1.38;
         });
-        lines.push({ words: ws, x0: line.bbox.x0, x1: line.bbox.x1, y0: line.bbox.y0, y1: line.bbox.y1,
-                     h: median(hs) || (line.bbox.y1 - line.bbox.y0), bullet: bullet });
+        // Lage der Zeile nur aus den behaltenen Wörtern (Krümel würden sie sonst verzerren)
+        var kept = lw.filter(function(w){ var t = cleanWord(w.text.replace(INVISIBLE, "")); return t && !isJunk(t) && LETTER.test(t); });
+        if(!kept.length) kept = lw;
+        var lb = { x0: Math.min.apply(0, kept.map(function(w){ return w.bbox.x0; })), x1: Math.max.apply(0, kept.map(function(w){ return w.bbox.x1; })),
+                   y0: Math.min.apply(0, kept.map(function(w){ return w.bbox.y0; })), y1: Math.max.apply(0, kept.map(function(w){ return w.bbox.y1; })) };
+        lines.push({ words: ws, boxes: bs, block: blockNo, x0: lb.x0, x1: lb.x1, y0: lb.y0, y1: lb.y1,
+                     h: median(hs) || (lb.y1 - lb.y0), bullet: bullet });
       });
     });
-    if(!lines.length) return [];
+    });
+    if(!lines.length) return { paras: [], boxes: [] };
 
     // 2) typische Werte der Seite
     var H = median(lines.map(function(l){ return l.h; }));
@@ -456,7 +540,7 @@
     var left = pct(lines.map(function(l){ return l.x0; }), 0.2);
 
     // 3) Absatzgrenzen bestimmen
-    var out = [], cur = [];
+    var out = [], cur = [], outB = [], curB = [];
     lines.forEach(function(l, i){
       var p = lines[i - 1];
       var brk = false;
@@ -465,6 +549,8 @@
         var lastWord = cur[cur.length - 1] || "";
         var sizeJump = Math.max(l.h, p.h) / Math.max(1, Math.min(l.h, p.h)) > 1.35;
         if(gap < -H) brk = true;                                              // springt nach oben: anderer Block
+        if(l.block !== p.block && gap < 0) brk = true;                        // anderer Textblock weiter oben
+        if(l.x0 > p.x1 || l.x1 < p.x0) brk = true;                            // steht ganz woanders (links/rechts daneben)
         if(gap > Math.max(G * 1.8, G + H * 0.5)) brk = true;                  // größerer Abstand
         if(sizeJump) brk = true;                                              // Überschrift
         if(l.bullet) brk = true;                                              // Aufzählung
@@ -473,30 +559,84 @@
         // Satz geht weiter (kleingeschrieben, kein Satzende): kein neuer Absatz
         if(brk && !sizeJump && !l.bullet && !END.test(lastWord) && /^[a-zäöüß]/.test(l.words[0])) brk = false;
       }
-      if(brk && cur.length){ out.push(cur); cur = []; }
+      if(brk && cur.length){ out.push(cur); outB.push(curB); cur = []; curB = []; }
       l.words.forEach(function(t, k){
         var prev = cur[cur.length - 1];
-        // Trennstrich am Zeilenende: "Schmet-" + "terling" → "Schmetterling"
+        // Trennstrich am Zeilenende: "Schmet-" + "terling" → "Schmetterling" (beide Rahmen bleiben)
         if(k === 0 && prev && /[A-Za-zÄÖÜäöüß]-$/.test(prev) && /^[a-zäöüß]/.test(t) && !/^(und|oder|bis|sowie)$/.test(t.replace(/[.,!?;:]$/, ""))){
           cur[cur.length - 1] = prev.slice(0, -1) + t;
+          curB[curB.length - 1] = curB[curB.length - 1].concat(l.boxes[k]);
         }else{
-          cur.push(t);
+          cur.push(t); curB.push(l.boxes[k]);
         }
       });
     });
-    if(cur.length) out.push(cur);
-    return out.map(function(ws){ return ws.map(censor); });
+    if(cur.length){ out.push(cur); outB.push(curB); }
+    return { paras: out.map(function(ws){ return ws.map(censor); }), boxes: outB };
+  }
+
+  // Wörter aus "extra", die an einer Stelle stehen, wo "base" nichts gefunden hat, als eigene Zeilen in "base" einfügen
+  function mergeData(base, extra){
+    function rect(ws){ return { x0: Math.min.apply(0, ws.map(function(w){ return w.bbox.x0; })), x1: Math.max.apply(0, ws.map(function(w){ return w.bbox.x1; })),
+                                y0: Math.min.apply(0, ws.map(function(w){ return w.bbox.y0; })), y1: Math.max.apply(0, ws.map(function(w){ return w.bbox.y1; })) }; }
+    function overlaps(a, b){
+      var ix = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), iy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+      return ix > 0 && iy > 0 && ix * iy > 0.25 * Math.min((a.x1 - a.x0) * (a.y1 - a.y0), (b.x1 - b.x0) * (b.y1 - b.y0));
+    }
+    var blocks = (base.blocks || []).map(function(bl){ return { paragraphs: bl.paragraphs }; });
+    var have = [];
+    blocks.forEach(function(bl){ (bl.paragraphs || []).forEach(function(p){ (p.lines || []).forEach(function(l){
+      (l.words || []).forEach(function(w){ if(w.confidence >= 45 && w.text.trim()) have.push(w.bbox); });
+    }); }); });
+    (extra.blocks || []).forEach(function(bl){ (bl.paragraphs || []).forEach(function(p){ (p.lines || []).forEach(function(l){
+      var ws = (l.words || []).filter(function(w){
+        return w.confidence >= 60 && /[A-Za-zÄÖÜäöüß]{2}/.test(w.text) && !have.some(function(h){ return overlaps(w.bbox, h); });
+      });
+      if(!ws.length) return;
+      var r = rect(ws);
+      var nb = { paragraphs: [{ lines: [{ words: ws, bbox: r, confidence: 70 }] }] };
+      // vor dem ersten Block einordnen, der weiter unten beginnt
+      var at = blocks.length;
+      for(var i = 0; i < blocks.length; i++){
+        var top = Infinity;
+        (blocks[i].paragraphs || []).forEach(function(pp){ (pp.lines || []).forEach(function(ll){ top = Math.min(top, ll.bbox.y0); }); });
+        if(top > r.y0){ at = i; break; }
+      }
+      blocks.splice(at, 0, nb);
+      ws.forEach(function(w){ have.push(w.bbox); });
+    }); }); });
+    return { blocks: blocks, rotateRadians: base.rotateRadians, confidence: base.confidence };
   }
 
   /* ---------- Darstellung ---------- */
   var tokens = [];     // {el, text, sentence}
   var sentences = [];  // [[tokenIndex, …], …]
+  var paraSent = [];   // pro Absatz: [erster Satz, Satz danach]
+
+  // Foto in die Fläche einpassen (ganz sichtbar, mittig)
+  function layoutPhoto(){
+    if(photoView.hidden) return;
+    function go(){
+      var iw = pvImg.naturalWidth, ih = pvImg.naturalHeight;
+      if(!iw || !ih) return;
+      var pad = 16, aw = photoView.clientWidth - pad * 2, ah = photoView.clientHeight - pad * 2;
+      var sc = Math.min(aw / iw, ah / ih), w = iw * sc, h = ih * sc;
+      pvInner.style.width = w + "px"; pvInner.style.height = h + "px";
+      pvInner.style.left = (pad + (aw - w) / 2) + "px"; pvInner.style.top = (pad + (ah - h) / 2) + "px";
+    }
+    if(pvImg.complete && pvImg.naturalWidth) go(); else pvImg.onload = go;
+  }
+  window.addEventListener("resize", layoutPhoto);
 
   function render(){
     textEl.replaceChildren();
-    tokens = []; sentences = [];
+    tokens = []; sentences = []; paraSent = [];
     var sIdx = -1, startNew = true;
-    paras.forEach(function(words){
+    var hasPhoto = !!(photoData && boxes && boxes.length === paras.length);
+    if(!hasPhoto && view === "photo") view = "text";
+    pvInner.querySelectorAll(".pb").forEach(function(n){ n.remove(); });
+    paras.forEach(function(words, pIdx){
+      paraSent[pIdx] = [sIdx + 1, sIdx + 1];
       var p = document.createElement("p");
       var sEl = null;
       startNew = true;
@@ -515,18 +655,43 @@
         span.dataset.i = tokens.length;
         sEl.appendChild(span);
         sentences[sIdx].push(tokens.length);
-        tokens.push({ el: span, text: w, sentence: sIdx });
+        var tok = { el: span, text: w, sentence: sIdx, para: pIdx, pbs: [] };
+        if(hasPhoto && boxes[pIdx] && boxes[pIdx][i]){
+          boxes[pIdx][i].forEach(function(b){
+            var d = document.createElement("span");
+            d.className = "pb" + (w.indexOf(MASKE) === 0 ? " masked" : "");
+            d.dataset.i = tokens.length;
+            d.style.left = (b[0] * 100) + "%"; d.style.top = (b[1] * 100) + "%";
+            d.style.width = ((b[2] - b[0]) * 100) + "%"; d.style.height = ((b[3] - b[1]) * 100) + "%";
+            pvInner.appendChild(d);
+            tok.pbs.push(d);
+          });
+        }
+        tokens.push(tok);
         if(/[.!?…]["“”»«)]*$/.test(w)) startNew = true;
         if(!startNew && i === words.length - 1) startNew = true;
         if(startNew && i < words.length - 1) p.appendChild(document.createTextNode(" "));
       });
       textEl.appendChild(p);
+      paraSent[pIdx][1] = sIdx + 1;
     });
     textEl.style.fontSize = sizes[sizeIdx] + "px";
+    // Ansicht umschalten
+    viewToggle.hidden = !hasPhoto;
+    var showPhoto = hasPhoto && view === "photo";
+    photoView.hidden = !showPhoto;
+    scroller.hidden = showPhoto;
+    sizeToggle.hidden = caseToggle.hidden = showPhoto;
+    viewPhotoBtn.setAttribute("aria-pressed", String(showPhoto));
+    viewTextBtn.setAttribute("aria-pressed", String(!showPhoto));
+    if(showPhoto){
+      if(pvImg.getAttribute("src") !== photoData) pvImg.src = photoData;
+      layoutPhoto();
+    }
     var has = tokens.length > 0;
     empty.hidden = has || !busy.hidden;
     camSmall.hidden = !has;
-    photoBtn.hidden = !photoURL;
+    photoBtn.hidden = true;     // ersetzt durch die Foto-Ansicht
     photoBtn.style.backgroundImage = photoURL ? 'url("' + photoURL + '")' : "";
     smaller.disabled = !has || sizeIdx === 0;
     bigger.disabled = !has || sizeIdx === sizes.length - 1;
@@ -581,10 +746,15 @@
     if(speechSynthesis.addEventListener) speechSynthesis.addEventListener("voiceschanged", pickVoice);
   }
 
-  var curS = null, curW = null;
+  var curS = null, curW = null, curPb = [];
   function mark(sIdx, tIdx){
     if(curS){ curS.classList.remove("cur"); curS = null; }
     if(curW){ curW.classList.remove("cur"); curW = null; }
+    curPb.forEach(function(n){ n.classList.remove("cur", "scur"); }); curPb = [];
+    if(sIdx != null && sentences[sIdx]) sentences[sIdx].forEach(function(t){
+      tokens[t].pbs.forEach(function(n){ n.classList.add("scur"); curPb.push(n); });
+    });
+    if(tIdx != null && tokens[tIdx]) tokens[tIdx].pbs.forEach(function(n){ n.classList.add("cur"); curPb.push(n); });
     if(sIdx != null){
       curS = textEl.querySelector('.s[data-s="' + sIdx + '"]');
       if(curS) curS.classList.add("cur");
@@ -595,6 +765,7 @@
     }else if(curS){ keepVisible(curS); }
   }
   function keepVisible(el){
+    if(scroller.hidden) return;
     var r = el.getBoundingClientRect(), sr = scroller.getBoundingClientRect();
     if(r.top < sr.top + 40 || r.bottom > sr.bottom - 40){
       scroller.scrollTo({ top: scroller.scrollTop + (r.top - sr.top) - sr.height / 3, behavior: "smooth" });
@@ -623,13 +794,16 @@
   }
 
   // Liest ab Satz "from" alle Sätze vor; das aktuelle Wort wird markiert.
-  function readFrom(from){
+  // liest die Sätze von "from" bis vor "to" (ohne "to": bis zum Ende)
+  function readFrom(from, to){
     if(!("speechSynthesis" in window)){ toast("Dieses Gerät kann leider nicht vorlesen.", 4000); return; }
     speechSynthesis.cancel();
     if(from >= sentences.length) from = 0;
+    if(to == null || to > sentences.length) to = sentences.length;
+    var whole = to === sentences.length;
     playing = true; updateButtons();
     var last = null;
-    for(var s = from; s < sentences.length; s++){
+    for(var s = from; s < to; s++){
       (function(sIdx){
         var idx = sentences[sIdx].filter(function(t){ return speakable(tokens[t].text); });
         if(!idx.length) return;
@@ -652,7 +826,7 @@
       })(s);
     }
     if(!last){ playing = false; updateButtons(); return; }
-    last.onend = function(){ if(playing){ playing = false; resumeFrom = 0; mark(null, null); updateButtons(); } };
+    last.onend = function(){ if(playing){ playing = false; resumeFrom = whole ? 0 : resumeFrom; mark(null, null); updateButtons(); } };
   }
 
   function readWord(tIdx){
@@ -667,6 +841,19 @@
     speechSynthesis.speak(u);
     resumeFrom = t.sentence;
   }
+
+  photoView.addEventListener("click", function(e){
+    var b = e.target.closest(".pb");
+    pvTip.style.opacity = "0";
+    if(!b || b.classList.contains("masked")) return;
+    var t = tokens[+b.dataset.i];
+    if(!t) return;
+    var r = paraSent[t.para];
+    readFrom(r[0], r[1]);
+  });
+  function setView(v){ if(view === v) return; stopReading(); view = v; save(); render(); }
+  viewPhotoBtn.addEventListener("click", function(){ setView("photo"); });
+  viewTextBtn.addEventListener("click", function(){ setView("text"); });
 
   textEl.addEventListener("click", function(e){
     var w = e.target.closest(".w");
@@ -690,7 +877,7 @@
         logger: function(m){ if(onProgress) onProgress(m); }
       }).then(function(w){
         worker = w;
-        return w.setParameters({ preserve_interword_spaces: "1" }).then(function(){ return w; });
+        return w.setParameters({ preserve_interword_spaces: "1", tessedit_pageseg_mode: "3" }).then(function(){ return w; });
       }).catch(function(err){ workerReady = null; throw err; });
     }
     return workerReady;
@@ -721,6 +908,11 @@
     g.imageSmoothingQuality = "high";
     g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
     var preview = c.toDataURL("image/jpeg", 0.7);
+    // Foto für die Foto-Ansicht: höchstens 1600 Pixel, damit es auf dem iPad gespeichert werden kann
+    var ps = Math.min(1, 1600 / Math.max(c.width, c.height)), pc = document.createElement("canvas");
+    pc.width = Math.round(c.width * ps); pc.height = Math.round(c.height * ps);
+    pc.getContext("2d").drawImage(c, 0, 0, pc.width, pc.height);
+    var photo = pc.toDataURL("image/jpeg", 0.78);
     var W = c.width, H = c.height;
     var d = g.getImageData(0, 0, W, H), px = d.data;
     var i, v, gray = new Uint8ClampedArray(W * H);
@@ -729,7 +921,7 @@
       v = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
       gray[i] = 0.5 * v + 0.5 * Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
     }
-    return { canvas: toCanvas(enhance(gray, W, H), W, H), plain: toCanvas(stretch(gray), W, H), preview: preview };
+    return { canvas: toCanvas(enhance(gray, W, H), W, H), plain: toCanvas(stretch(gray), W, H), preview: preview, photo: photo };
   }
   function toCanvas(gray, W, H){
     var c = document.createElement("canvas"); c.width = W; c.height = H;
@@ -959,20 +1151,23 @@
       worker1 = w;
       return w.recognize(p.canvas, { rotateAuto: true }, { text: true, blocks: true });
     }).then(function(res){
-      if(res.data.confidence >= 80) return res;
+      if(res.data.confidence >= 85) return res;
       busyText.textContent = "Ich schaue noch genauer hin …";
       return worker1.recognize(p.plain, { rotateAuto: true }, { text: true, blocks: true }).then(function(res2){
-        return score(res2) > score(res) ? res2 : res;
+        // das bessere Ergebnis als Grundlage nehmen und um Zeilen ergänzen, die nur das andere gefunden hat
+        var a = score(res2) > score(res) ? res2 : res, b = a === res ? res2 : res;
+        return { data: mergeData(a.data, b.data) };
       });
     }).then(function(res){
-      var found = toParas(res.data);
+      var found = toParas(res.data, p.canvas.width, p.canvas.height);
       setBusy(false);
-      if(!found.length){
+      if(!found.paras.length){
         render();
         toast("Ich konnte keinen Text finden. Halte das iPad ruhig und genau von oben über die Seite und versuch es nochmal.", 6000);
         return;
       }
-      paras = found; resumeFrom = 0;
+      paras = found.paras; boxes = found.boxes; photoData = p.photo; view = "photo";
+      resumeFrom = 0;
       scroller.scrollTop = 0;
       save(); render();
     }).catch(function(){
@@ -991,7 +1186,9 @@
   var INVISIBLE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFA0\uFFF0-\uFFFF\uE000-\uF8FF]/g;
   var BULLET = /^[•·▪●◦○■□►▸‣⁃∙\-–—*>]+\s*/;
   // erlaubte Wörter mit ein oder zwei Buchstaben – alles andere Kurze ist meist Erkennungs-Krümel aus Bildern
-  var SHORT_OK = ["ab","am","an","au","da","du","ei","er","es","im","in","ja","je","na","ob","oh","so","um","wo","zu","hm","äh","oje","ah","ha","he","hi","ui","uh","eh","ok","pst","ne"];
+  var SHORT_OK = ["ab","am","an","da","du","ei","er","es","im","in","ja","je","na","ob","oh","so","um","wo","zu","ok"];
+  // Ausrufe zählen nur mit Satzzeichen ("Au!", "Ha,") – ohne sind es meist Krümel
+  var SHORT_CALL = ["au","ah","ha","he","hi","hm","äh","ui","uh","eh"];
   function isJunk(t){
     var core = t.replace(/^[„"“”»«'‚‘’(\[]+|[„"“”»«'‚‘’)\].,!?;:…]+$/g, "");
     if(!core) return !/^[–—-]$/.test(t);                       // nur Satzzeichen (Gedankenstrich bleibt)
@@ -999,6 +1196,7 @@
     if(/^[0-9]+([.,:][0-9]+)*$/.test(core)) return false;      // Zahlen bleiben
     if(core.length <= 2 && /^[A-Za-zÄÖÜäöüß]+$/.test(core)){
       if(SHORT_OK.indexOf(core.toLowerCase()) >= 0) return false;
+      if(SHORT_CALL.indexOf(core.toLowerCase()) >= 0 && /[!?,.…]$/.test(t)) return false;
       if(/^[A-ZÄÖÜ][a-zäöü]?\.$/.test(core + (t.slice(-1) === "." ? "." : ""))) return false;   // Abkürzung wie "Dr." oder "S."
       return true;
     }
@@ -1048,6 +1246,7 @@
     if(!found.length){ toast(source === "paste" ? "In der Zwischenablage ist kein Text." : "Der Kurzbefehl hat keinen Text gefunden.", 4000); return; }
     stopReading();
     paras = found; resumeFrom = 0;
+    boxes = null; photoData = null; view = "text";     // Text ohne Foto: nur Fließtext
     if(photoURL){ URL.revokeObjectURL(photoURL); photoURL = null; }
     scroller.scrollTop = 0;
     save(); render();
