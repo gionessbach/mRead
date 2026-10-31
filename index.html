@@ -663,6 +663,71 @@
     return { paras: out.map(function(ws){ return ws.map(censor); }), boxes: outB };
   }
 
+  /* ---------- Lesereihenfolge wie ein Mensch ----------
+     Die Textbausteine werden nach ihrer Lage auf dem Foto geordnet (sog. X-Y-Schnitt):
+     – Gibt es eine senkrechte Lücke, die das Bild in hohe Spalten teilt (z. B. linke und rechte Buchseite),
+       wird erst die linke, dann die rechte Spalte gelesen.
+     – Sonst wird an waagrechten Lücken geteilt: von oben nach unten.
+     – Bausteine nebeneinander in derselben Höhe: von links nach rechts.
+     Danach werden Bausteine verbunden, die einen Satz fortsetzen (kein Satzende, nächste Zeile klein und darunter). */
+  function paraRect(bp){
+    var r = null;
+    bp.forEach(function(bs){ (bs || []).forEach(function(b){
+      if(!r) r = b.slice(); else { r[0] = Math.min(r[0], b[0]); r[1] = Math.min(r[1], b[1]); r[2] = Math.max(r[2], b[2]); r[3] = Math.max(r[3], b[3]); }
+    }); });
+    return r;
+  }
+  function splitBy(items, lo, hi, minGap){
+    var sorted = items.slice().sort(function(a, b){ return a.r[lo] - b.r[lo]; });
+    var groups = [[sorted[0]]], end = sorted[0].r[hi];
+    for(var i = 1; i < sorted.length; i++){
+      var it = sorted[i];
+      if(it.r[lo] - end > minGap) groups.push([it]); else groups[groups.length - 1].push(it);
+      end = Math.max(end, it.r[hi]);
+    }
+    return groups;
+  }
+  function extent(items, lo, hi){
+    return Math.max.apply(0, items.map(function(it){ return it.r[hi]; })) - Math.min.apply(0, items.map(function(it){ return it.r[lo]; }));
+  }
+  function xycut(items){
+    if(items.length <= 1) return items;
+    var H = extent(items, 1, 3);
+    var cols = splitBy(items, 0, 2, 0.015);
+    // echte Spalten/Seiten: jede Spalte ist hoch
+    if(cols.length > 1 && cols.every(function(g){ return extent(g, 1, 3) >= H * 0.35; })){
+      return [].concat.apply([], cols.map(xycut));
+    }
+    var rows = splitBy(items, 1, 3, 0.002);
+    if(rows.length > 1) return [].concat.apply([], rows.map(xycut));
+    if(cols.length > 1) return [].concat.apply([], cols.map(xycut));
+    return items.slice().sort(function(a, b){ return (a.r[1] - b.r[1]) || (a.r[0] - b.r[0]); });
+  }
+  function arrange(P, B){
+    if(!B || B.length !== P.length) return { paras: P, boxes: B };
+    var items = [], rest = [];
+    P.forEach(function(ws, i){ var r = paraRect(B[i] || []); (r ? items : rest).push({ ws: ws, bp: B[i], r: r }); });
+    items = xycut(items).concat(rest);
+    // Satz läuft im nächsten Baustein weiter: zusammenfügen
+    var out = [];
+    items.forEach(function(it){
+      var prev = out[out.length - 1];
+      if(prev && prev.r && it.r){
+        var last = prev.ws[prev.ws.length - 1] || "", first = it.ws[0] || "";
+        var lineH = Math.min(prev.r[3] - prev.r[1], it.r[3] - it.r[1]);
+        var below = it.r[1] >= prev.r[3] - lineH * 0.5 && it.r[1] - prev.r[3] < Math.max(0.06, lineH * 3);
+        var overlapX = Math.min(prev.r[2], it.r[2]) - Math.max(prev.r[0], it.r[0]) > 0;
+        if(!END.test(last) && /^[a-zäöüß]/.test(first) && below && overlapX){
+          prev.ws = prev.ws.concat(it.ws); prev.bp = prev.bp.concat(it.bp);
+          prev.r = [Math.min(prev.r[0], it.r[0]), prev.r[1], Math.max(prev.r[2], it.r[2]), it.r[3]];
+          return;
+        }
+      }
+      out.push({ ws: it.ws.slice(), bp: it.bp.slice(), r: it.r });
+    });
+    return { paras: out.map(function(o){ return o.ws; }), boxes: out.map(function(o){ return o.bp; }) };
+  }
+
   // Wörter aus "extra", die an einer Stelle stehen, wo "base" nichts gefunden hat, als eigene Zeilen in "base" einfügen
   function mergeData(base, extra){
     function rect(ws){ return { x0: Math.min.apply(0, ws.map(function(w){ return w.bbox.x0; })), x1: Math.max.apply(0, ws.map(function(w){ return w.bbox.x1; })),
@@ -887,17 +952,13 @@
         ws.forEach(function(w, j){ var bs = boxes[i][j] || []; if(!bs.length || !inside(bs)){ w2.push(w); b2.push(bs); } });
         if(w2.length){ P.push(w2); B.push(b2); }
       });
-      // neue Absätze nach ihrer Höhe auf dem Foto einordnen
-      function topOf(bp){ var t = 1; bp.forEach(function(bs){ (bs || []).forEach(function(b){ t = Math.min(t, b[1]); }); }); return t; }
-      found.paras.forEach(function(ws, i){
-        // hinter den Absatz, der am nächsten darüber beginnt (ohne solchen: ganz nach vorn)
-        var t = topOf(nb[i]), at = 0, best = -1;
-        for(var j = 0; j < B.length; j++){ var tj = topOf(B[j]); if(tj <= t + 0.003 && tj >= best){ best = tj; at = j + 1; } }
-        P.splice(at, 0, ws); B.splice(at, 0, nb[i]);
-      });
-      paras = P; boxes = B; resumeFrom = 0;
+      // neue Bausteine dazu und alles in Lesereihenfolge bringen
+      var newBoxes = [];
+      found.paras.forEach(function(ws, i){ P.push(ws); B.push(nb[i]); nb[i].forEach(function(bs){ newBoxes.push(bs); }); });
+      var ar = arrange(P, B);
+      paras = ar.paras; boxes = ar.boxes; resumeFrom = 0;
       var fresh = [];
-      P.forEach(function(ws, i){ if(found.paras.indexOf(ws) >= 0) fresh.push(i); });
+      boxes.forEach(function(bp, i){ if(bp.some(function(bs){ return newBoxes.indexOf(bs) >= 0; })) fresh.push(i); });
       save(); done(); render();
       // das neu Erkannte gleich vorlesen
       var list = [];
@@ -1619,7 +1680,8 @@
         toast("Ich konnte keinen Text finden. Halte das iPad ruhig und genau von oben über die Seite und versuch es nochmal.", 6000);
         return;
       }
-      paras = found.paras; boxes = found.boxes; photoData = p.photo; view = "photo";
+      var ar = arrange(found.paras, found.boxes);
+      paras = ar.paras; boxes = ar.boxes; photoData = p.photo; view = "photo";
       resumeFrom = 0;
       scroller.scrollTop = 0;
       save(); render();
