@@ -137,21 +137,31 @@
   /* Foto-Ansicht: Text wird direkt auf dem Foto markiert */
   .photoview{position:absolute;inset:0;background:#1E1E19;overflow:hidden;touch-action:none}
   .pv-inner{position:absolute;transform-origin:0 0;will-change:transform}
-  .pv-redo{
-    position:absolute;top:7px;left:10px;height:44px;padding:0 16px 0 12px;border-radius:999px;cursor:pointer;z-index:3;
-    display:inline-flex;align-items:center;gap:8px;background:var(--yellow);color:var(--ink);font-size:16px;font-weight:700;
-    border:2px solid var(--yellow);box-shadow:0 3px 0 var(--yellow-deep);
+  /* Kopfleiste der Foto-Ansicht: Knöpfe und Hinweis nebeneinander, nichts überlappt */
+  .pv-bar{
+    position:absolute;left:0;right:0;top:0;z-index:3;background:#1E1E19;min-height:60px;
+    display:flex;align-items:center;gap:10px;padding:8px 10px;
   }
-  .pv-redo svg{width:22px;height:22px}
-  .pv-redo[aria-pressed="true"]{background:#1E1E19;color:var(--yellow)}
-  .pv-ok,.pv-no{
-    position:absolute;top:7px;height:44px;padding:0 16px;border-radius:999px;cursor:pointer;z-index:3;
-    display:inline-flex;align-items:center;gap:8px;font-size:16px;font-weight:700;border:0;
+  .pv-tip{
+    flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;
+    color:#F1EFE6;font-family:var(--font-kid);font-weight:700;font-size:17px;line-height:1.25;text-align:center;
   }
-  .pv-ok{right:10px;background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--yellow-deep)}
+  .pv-tip span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pv-tip svg{width:22px;height:22px;flex:none;color:var(--yellow)}
+  .pv-btn{
+    flex:none;height:44px;padding:0 14px;border-radius:999px;border:0;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;font-size:16px;font-weight:700;white-space:nowrap;
+  }
+  .pv-btn svg{width:22px;height:22px;flex:none}
+  .pv-redo{background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--yellow-deep)}
+  .pv-ok{background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--yellow-deep)}
   .pv-ok:disabled{opacity:.4;box-shadow:none}
-  .pv-no{right:150px;background:rgba(255,255,255,.14);color:#F1EFE6}
-  .pv-ok svg,.pv-no svg{width:20px;height:20px}
+  .pv-no,.pv-mark{background:rgba(255,255,255,.14);color:#F1EFE6;font-weight:600}
+  .pv-mark .sw{width:14px;height:14px;border-radius:4px;border:2px solid var(--yellow);flex:none}
+  .pv-mark[aria-pressed="true"] .sw{background:var(--yellow)}
+  /* schmale Ansicht: Knöpfe nur mit Symbol */
+  @media (max-width:900px){ .pv-no .lbl,.pv-mark .lbl{display:none} .pv-no,.pv-mark{padding:0 11px} .pv-tip{font-size:15px} .pv-tip svg{display:none} }
+  @media (max-width:560px){ .pv-btn .lbl{display:none} .pv-btn{padding:0 11px} }
   .photoview.selecting .pl{cursor:crosshair}
   .photoview.selecting{cursor:crosshair}
   .sel{position:absolute;border:3px solid var(--yellow);border-radius:6px;background:rgba(253,208,2,.12);pointer-events:none;
@@ -175,20 +185,6 @@
   .pl.active{background:rgba(253,208,2,.6)}
   .photoview.clean .pl{background:transparent}
   .photoview.clean .pl.active{background:rgba(253,208,2,.45)}
-  .pv-tip{
-    position:absolute;left:0;right:0;top:0;height:58px;padding:0 200px;z-index:2;background:#1E1E19;
-    display:flex;align-items:center;justify-content:center;gap:8px;
-    color:#F1EFE6;font-family:var(--font-kid);font-weight:700;font-size:18px;text-align:center;pointer-events:none;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .pv-tip svg{width:22px;height:22px;flex:none;color:var(--yellow)}
-  .pv-mark{
-    position:absolute;top:9px;right:12px;height:40px;padding:0 12px;border-radius:999px;border:0;cursor:pointer;z-index:3;
-    display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);color:#F1EFE6;font-size:15px;font-weight:600;
-  }
-  .pv-mark svg{width:20px;height:20px}
-  .pv-mark[aria-pressed="true"] .sw{background:var(--yellow)}
-  .pv-mark .sw{width:14px;height:14px;border-radius:4px;border:2px solid var(--yellow)}
   .viewtoggle button{min-width:0;padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-size:20px}
   .viewtoggle svg{width:26px;height:26px}
 
@@ -273,20 +269,22 @@
 
     <div class="photoview" id="photoView" hidden>
       <div class="pv-inner" id="pvInner"><img id="pvImg" alt="Dein Foto"></div>
-      <div class="pv-tip" id="pvTip" title="Mit zwei Fingern kannst du das Foto vergrößern."><svg viewBox="0 0 24 24"><path d="M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Tippe auf einen gelb markierten Text, dann lese ich ihn vor.</div>
-      <button id="pvRedo" class="pv-redo" type="button" aria-pressed="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M15.5 10.5a4 4 0 1 0 .5 3"/><path d="M16 8.5v2.5h-2.5"/></svg>Bereich neu lesen
-      </button>
-      <button id="pvNo" class="pv-no" type="button" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>Abbrechen
-      </button>
-      <button id="pvOk" class="pv-ok" type="button" hidden disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Lesen
-      </button>
+      <div class="pv-bar" id="pvBar">
+        <button id="pvRedo" class="pv-btn pv-redo" type="button" aria-pressed="false" aria-label="Bereich neu lesen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M15.5 10.5a4 4 0 1 0 .5 3"/><path d="M16 8.5v2.5h-2.5"/></svg><span class="lbl">Bereich neu lesen</span>
+        </button>
+        <div class="pv-tip" id="pvTip"><svg viewBox="0 0 24 24"><path d="M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg><span>Tippe auf einen gelb markierten Text, dann lese ich ihn vor.</span></div>
+        <button id="pvNo" class="pv-btn pv-no" type="button" hidden aria-label="Abbrechen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="lbl">Abbrechen</span>
+        </button>
+        <button id="pvOk" class="pv-btn pv-ok" type="button" hidden disabled aria-label="Lesen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="lbl">Lesen</span>
+        </button>
+        <button id="pvMark" class="pv-btn pv-mark" type="button" aria-pressed="true" aria-label="Markierung zeigen"><span class="sw"></span><span class="lbl">Markierung</span></button>
+      </div>
       <button id="pvZoom" class="pv-zoom" type="button" aria-label="Ganzes Foto zeigen" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M7.5 10.5h6"/></svg>
       </button>
-      <button id="pvMark" class="pv-mark" type="button" aria-pressed="true" aria-label="Markierung zeigen"><span class="sw"></span>Markierung</button>
     </div>
 
     <div class="empty" id="empty">
@@ -683,7 +681,7 @@
     function go(){
       var iw = pvImg.naturalWidth, ih = pvImg.naturalHeight;
       if(!iw || !ih) return;
-      var pad = 36, top = 56;     // oben Platz für den Hinweis, seitlich für die Lautsprecher-Zeichen
+      var pad = 20, top = $("pvBar").offsetHeight + 10;     // oben Platz für die Kopfleiste
       var aw = photoView.clientWidth - pad * 2, ah = photoView.clientHeight - top - 16;
       var sc = Math.min(aw / iw, ah / ih), w = iw * sc, h = ih * sc;
       pvInner.style.width = w + "px"; pvInner.style.height = h + "px";
@@ -771,7 +769,7 @@
       // erst bestätigen lassen: Rahmen bleibt stehen, „Lesen“ wird aktiv; neu ziehen ersetzt ihn
       if(r.x1 - r.x0 > 0.02 && r.y1 - r.y0 > 0.01){
         selRect = r; pvOk.disabled = false;
-        pvTip.textContent = "Passt der Rahmen? Dann tippe auf „Lesen“.";
+        tipText.textContent = "Passt der Rahmen? Dann tippe auf „Lesen“.";
       }else if(selEl){ selEl.remove(); selEl = null; selRect = null; pvOk.disabled = true; }
     }
     delete ptrs[e.pointerId];
@@ -792,7 +790,7 @@
   pvZoom.addEventListener("click", function(e){ e.stopPropagation(); setZoom(1, 0, 0); });
 
   /* ---------- Bereich neu lesen: nur diese Stelle erneut erkennen, der Rest bleibt ---------- */
-  var TIP_NORMAL = pvTip.innerHTML;
+  var tipText = pvTip.querySelector("span"), TIP_NORMAL = tipText.textContent;
   // Punkt in der Foto-Fläche → Anteil auf dem Foto (berücksichtigt den Zoom)
   function toPhoto(p){
     return { x: Math.max(0, Math.min(1, (p.x - base.x - zoom.tx) / (zoom.s * base.w))),
@@ -807,7 +805,7 @@
     selecting = on;
     pvRedo.setAttribute("aria-pressed", String(on));
     photoView.classList.toggle("selecting", on);
-    pvTip.innerHTML = on ? "Zieh einen Rahmen um den Text, der neu gelesen werden soll." : TIP_NORMAL;
+    tipText.textContent = on ? "Zieh einen Rahmen um den Text, der neu gelesen werden soll." : TIP_NORMAL;
     pvRedo.hidden = on; pvMark.hidden = on;
     pvOk.hidden = pvNo.hidden = !on;
     pvOk.disabled = true; selRect = null;
@@ -824,7 +822,7 @@
   function rereadRegion(r){
     selBusy = true;
     selEl.classList.add("reading");
-    pvTip.textContent = "Ich lese diesen Bereich neu …";
+    tipText.textContent = "Ich lese diesen Bereich neu …";
     // Ausschnitt aus dem Foto in voller Auflösung (nach dem Neuladen: aus dem gespeicherten Foto)
     var src = srcCanvas || pvImg;
     var sw = src.width || src.naturalWidth, sh = src.height || src.naturalHeight;
@@ -885,7 +883,7 @@
   function followWord(el){
     if(!base || zoom.s <= 1.01 || photoView.hidden) return;
     var r = el.getBoundingClientRect(), v = photoView.getBoundingClientRect(), m = 60;
-    if(r.left < v.left + m || r.right > v.right - m || r.top < v.top + 70 || r.bottom > v.bottom - m){
+    if(r.left < v.left + m || r.right > v.right - m || r.top < v.top + $("pvBar").offsetHeight + 10 || r.bottom > v.bottom - m){
       var cx = r.left + r.width / 2 - v.left, cy = r.top + r.height / 2 - v.top;
       setZoom(zoom.s, zoom.tx + (v.width / 2 - cx), zoom.ty + (v.height / 2 - cy));
     }
