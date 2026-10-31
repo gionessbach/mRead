@@ -135,8 +135,13 @@
   .file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 
   /* Foto-Ansicht: Text wird direkt auf dem Foto markiert */
-  .photoview{position:absolute;inset:0;background:#1E1E19;overflow:hidden}
-  .pv-inner{position:absolute}
+  .photoview{position:absolute;inset:0;background:#1E1E19;overflow:hidden;touch-action:none}
+  .pv-inner{position:absolute;transform-origin:0 0;will-change:transform}
+  .pv-zoom{
+    position:absolute;right:12px;bottom:12px;width:52px;height:52px;border-radius:50%;border:0;cursor:pointer;z-index:2;
+    background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.35);
+  }
+  .pv-zoom svg{width:26px;height:26px}
   .pv-inner img{position:absolute;inset:0;width:100%;height:100%;-webkit-user-drag:none;pointer-events:none;border-radius:4px}
   /* Wortflächen: unsichtbar, nur zum Markieren beim Vorlesen */
   .pb{position:absolute;border-radius:3px;pointer-events:none;mix-blend-mode:multiply;transition:background .12s}
@@ -149,13 +154,14 @@
   .photoview.clean .pl{background:transparent}
   .photoview.clean .pl.active{background:rgba(253,208,2,.45)}
   .pv-tip{
-    position:absolute;left:150px;right:150px;top:12px;height:36px;display:flex;align-items:center;justify-content:center;gap:8px;
+    position:absolute;left:0;right:0;top:0;height:58px;padding:0 150px;z-index:2;background:#1E1E19;
+    display:flex;align-items:center;justify-content:center;gap:8px;
     color:#F1EFE6;font-family:var(--font-kid);font-weight:700;font-size:18px;text-align:center;pointer-events:none;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .pv-tip svg{width:22px;height:22px;flex:none;color:var(--yellow)}
   .pv-mark{
-    position:absolute;top:10px;right:12px;height:40px;padding:0 12px;border-radius:999px;border:0;cursor:pointer;
+    position:absolute;top:9px;right:12px;height:40px;padding:0 12px;border-radius:999px;border:0;cursor:pointer;z-index:3;
     display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);color:#F1EFE6;font-size:15px;font-weight:600;
   }
   .pv-mark svg{width:20px;height:20px}
@@ -173,16 +179,12 @@
   }
   .crop-area{position:absolute;inset:64px 16px 16px;touch-action:none}
   .crop-area img{position:absolute;-webkit-user-drag:none;pointer-events:none}
-  .frame{
-    position:absolute;border:3px solid var(--yellow);border-radius:6px;cursor:move;
-    box-shadow:0 0 0 9999px rgba(20,20,16,.55);touch-action:none;
-  }
-  .frame .h{position:absolute;width:56px;height:56px;touch-action:none}
-  .frame .h::after{content:"";position:absolute;width:26px;height:26px;border:7px solid var(--yellow)}
-  .frame .nw{left:-28px;top:-28px;cursor:nwse-resize} .frame .nw::after{left:22px;top:22px;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
-  .frame .ne{right:-28px;top:-28px;cursor:nesw-resize} .frame .ne::after{right:22px;top:22px;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
-  .frame .sw{left:-28px;bottom:-28px;cursor:nesw-resize} .frame .sw::after{left:22px;bottom:22px;border-right:0;border-top:0;border-radius:0 0 0 8px}
-  .frame .se{right:-28px;bottom:-28px;cursor:nwse-resize} .frame .se::after{right:22px;bottom:22px;border-left:0;border-top:0;border-radius:0 0 8px 0}
+  .quad{position:absolute;inset:0;width:100%;height:100%;overflow:visible;touch-action:none}
+  .quad .mask{fill:rgba(20,20,16,.6);fill-rule:evenodd}
+  .quad .edge{fill:rgba(253,208,2,.08);stroke:var(--yellow);stroke-width:3;stroke-linejoin:round;cursor:move}
+  .quad .grid{stroke:rgba(253,208,2,.55);stroke-width:1.5;stroke-dasharray:6 6;fill:none;pointer-events:none}
+  .quad .knob{fill:var(--yellow);stroke:#26261F;stroke-width:3;cursor:grab}
+  .quad .hit{fill:transparent;cursor:grab}
 
   /* Stimmenauswahl */
   .scrim{
@@ -247,7 +249,10 @@
 
     <div class="photoview" id="photoView" hidden>
       <div class="pv-inner" id="pvInner"><img id="pvImg" alt="Dein Foto"></div>
-      <div class="pv-tip" id="pvTip"><svg viewBox="0 0 24 24"><path d="M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Tippe auf einen gelb markierten Text, dann lese ich ihn vor.</div>
+      <div class="pv-tip" id="pvTip" title="Mit zwei Fingern kannst du das Foto vergrößern."><svg viewBox="0 0 24 24"><path d="M5 9.5v5h3.2l4.3 3.6V5.9L8.2 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>Tippe auf einen gelb markierten Text, dann lese ich ihn vor.</div>
+      <button id="pvZoom" class="pv-zoom" type="button" aria-label="Ganzes Foto zeigen" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M7.5 10.5h6"/></svg>
+      </button>
       <button id="pvMark" class="pv-mark" type="button" aria-pressed="true" aria-label="Markierung zeigen"><span class="sw"></span>Markierung</button>
     </div>
 
@@ -270,12 +275,10 @@
     </div>
 
     <div class="crop" id="crop" hidden>
-      <div class="crop-tip">Zieh den Rahmen um den Text, der vorgelesen werden soll.</div>
+      <div class="crop-tip">Zieh die 4 gelben Ecken auf die Ecken des Textes – dann wird das Foto gerade gezogen.</div>
       <div class="crop-area" id="cropArea">
         <img id="cropImg" alt="Dein Foto">
-        <div class="frame" id="frame">
-          <i class="h nw" data-h="nw"></i><i class="h ne" data-h="ne"></i><i class="h sw" data-h="sw"></i><i class="h se" data-h="se"></i>
-        </div>
+        <svg class="quad" id="quad" aria-label="Bereich wählen"></svg>
       </div>
     </div>
 
@@ -352,11 +355,12 @@
   var camInput = $("camInput"), galleryInput = $("galleryInput");
   var modeNormal = $("modeNormal"), modeUpper = $("modeUpper"), smaller = $("smaller"), bigger = $("bigger");
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
-  var pvMark = $("pvMark"), showMarks = true;
+  var pvMark = $("pvMark"), showMarks = true, pvZoom = $("pvZoom");
+  var zoom = { s: 1, tx: 0, ty: 0 }, base = null;   // base: Lage des Fotos ohne Zoom
   var photoView = $("photoView"), pvInner = $("pvInner"), pvImg = $("pvImg"), pvTip = $("pvTip");
   var viewToggle = $("viewToggle"), viewPhotoBtn = $("viewPhoto"), viewTextBtn = $("viewText");
   var sizeToggle = $("sizeToggle"), caseToggle = $("caseToggle");
-  var crop = $("crop"), cropArea = $("cropArea"), cropImg = $("cropImg"), frame = $("frame");
+  var crop = $("crop"), cropArea = $("cropArea"), cropImg = $("cropImg");
   var cropControls = $("cropControls"), mainControls = $("mainControls"), cropGo = $("cropGo"), cropCancel = $("cropCancel"), cropAll = $("cropAll");
   var pasteBtn = $("pasteBtn"), gearBtn = $("gearBtn"), scrim = $("scrim"), closeBtn = $("closeBtn"), voicesEl = $("voices");
 
@@ -640,10 +644,96 @@
       var sc = Math.min(aw / iw, ah / ih), w = iw * sc, h = ih * sc;
       pvInner.style.width = w + "px"; pvInner.style.height = h + "px";
       pvInner.style.left = (pad + (aw - w) / 2) + "px"; pvInner.style.top = (top + (ah - h) / 2) + "px";
+      base = { x: pad + (aw - w) / 2, y: top + (ah - h) / 2, w: w, h: h };
+      setZoom(1, 0, 0);
     }
     if(pvImg.complete && pvImg.naturalWidth) go(); else pvImg.onload = go;
   }
   window.addEventListener("resize", layoutPhoto);
+
+  /* ---------- Zoom in der Foto-Ansicht: zwei Finger auf-/zuziehen, ein Finger verschieben ---------- */
+  function setZoom(sc, tx, ty){
+    if(!base) return;
+    sc = Math.max(1, Math.min(6, sc));
+    var vw = photoView.clientWidth, vh = photoView.clientHeight, w = base.w * sc, h = base.h * sc;
+    // nicht weiter verschieben als nötig: Foto bleibt im Bild
+    function lim(t, b, size, view){
+      var left = b + t;
+      if(size <= view - 16) return (view - size) / 2 - b;
+      return Math.min(8 - b, Math.max(view - 8 - size - b, t));
+    }
+    if(sc === 1){ tx = 0; ty = 0; }
+    else{ tx = lim(tx, base.x, w, vw); ty = lim(ty, base.y, h, vh); }
+    zoom = { s: sc, tx: tx, ty: ty };
+    pvInner.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + sc + ")";
+    pvZoom.hidden = sc <= 1.01;
+  }
+  // um einen Punkt (in Koordinaten der Foto-Fläche) zoomen
+  function zoomAt(newS, cx, cy){
+    var s0 = zoom.s;
+    newS = Math.max(1, Math.min(6, newS));
+    var ix = (cx - base.x - zoom.tx) / s0, iy = (cy - base.y - zoom.ty) / s0;
+    setZoom(newS, cx - base.x - ix * newS, cy - base.y - iy * newS);
+  }
+  var ptrs = {}, gesture = null, moved = 0, downTarget = null;
+  function local(e){ var r = photoView.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  photoView.addEventListener("pointerdown", function(e){
+    if(e.target.closest("button")) return;
+    ptrs[e.pointerId] = local(e);
+    if(Object.keys(ptrs).length === 1) downTarget = e.target;
+    try{ photoView.setPointerCapture(e.pointerId); }catch(err){}
+    var ids = Object.keys(ptrs);
+    if(ids.length === 1){ moved = 0; gesture = { pan: true, start: ptrs[ids[0]], tx: zoom.tx, ty: zoom.ty }; }
+    if(ids.length === 2){
+      var a = ptrs[ids[0]], b = ptrs[ids[1]];
+      gesture = { pinch: true, d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: zoom.s, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, tx: zoom.tx, ty: zoom.ty };
+      moved = 99;
+    }
+  });
+  photoView.addEventListener("pointermove", function(e){
+    if(!ptrs[e.pointerId] || !gesture) return;
+    ptrs[e.pointerId] = local(e);
+    var ids = Object.keys(ptrs);
+    if(gesture.pinch && ids.length >= 2){
+      var a = ptrs[ids[0]], b = ptrs[ids[1]];
+      var d = Math.hypot(a.x - b.x, a.y - b.y), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+      var ns = Math.max(1, Math.min(6, gesture.s * d / gesture.d));
+      // Punkt unter der Fingermitte festhalten und mit der Mitte mitschieben
+      var ix = (gesture.cx - base.x - gesture.tx) / gesture.s, iy = (gesture.cy - base.y - gesture.ty) / gesture.s;
+      setZoom(ns, cx - base.x - ix * ns, cy - base.y - iy * ns);
+    }else if(gesture.pan){
+      var p = ptrs[e.pointerId], dx = p.x - gesture.start.x, dy = p.y - gesture.start.y;
+      moved = Math.max(moved, Math.hypot(dx, dy));
+      if(zoom.s > 1) setZoom(zoom.s, gesture.tx + dx, gesture.ty + dy);
+    }
+  });
+  function ptrUp(e){
+    delete ptrs[e.pointerId];
+    var ids = Object.keys(ptrs);
+    if(ids.length === 1){ var p = ptrs[ids[0]]; gesture = { pan: true, start: p, tx: zoom.tx, ty: zoom.ty }; }
+    else if(!ids.length) gesture = null;
+  }
+  photoView.addEventListener("pointerup", ptrUp);
+  photoView.addEventListener("pointercancel", ptrUp);
+  // Mausrad / Trackpad (am Computer)
+  photoView.addEventListener("wheel", function(e){
+    e.preventDefault();
+    var p = local(e);
+    zoomAt(zoom.s * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.002)), p.x, p.y);
+  }, { passive: false });
+  // Safari: eigenes Seiten-Zoomen verhindern
+  ["gesturestart", "gesturechange"].forEach(function(n){ photoView.addEventListener(n, function(e){ e.preventDefault(); }); });
+  pvZoom.addEventListener("click", function(e){ e.stopPropagation(); setZoom(1, 0, 0); });
+
+  // beim Vorlesen: gezoomtes Foto so verschieben, dass das aktuelle Wort sichtbar bleibt
+  function followWord(el){
+    if(!base || zoom.s <= 1.01 || photoView.hidden) return;
+    var r = el.getBoundingClientRect(), v = photoView.getBoundingClientRect(), m = 60;
+    if(r.left < v.left + m || r.right > v.right - m || r.top < v.top + 70 || r.bottom > v.bottom - m){
+      var cx = r.left + r.width / 2 - v.left, cy = r.top + r.height / 2 - v.top;
+      setZoom(zoom.s, zoom.tx + (v.width / 2 - cx), zoom.ty + (v.height / 2 - cy));
+    }
+  }
 
   function render(){
     textEl.replaceChildren();
@@ -796,6 +886,7 @@
       tokens[t].pbs.forEach(function(n){ n.classList.add("scur"); curPb.push(n); });
     });
     if(tIdx != null && tokens[tIdx]) tokens[tIdx].pbs.forEach(function(n){ n.classList.add("cur"); curPb.push(n); });
+    if(tIdx != null && tokens[tIdx] && tokens[tIdx].pbs[0]) followWord(tokens[tIdx].pbs[0]);
     if(sIdx != null){
       curS = textEl.querySelector('.s[data-s="' + sIdx + '"]');
       if(curS) curS.classList.add("cur");
@@ -884,7 +975,9 @@
   }
 
   photoView.addEventListener("click", function(e){
-    var b = e.target.closest(".pl");
+    if(moved > 8){ moved = 0; return; }       // war ein Verschieben oder Zoomen, kein Tippen
+    // beim Zoomen hält die Foto-Fläche den Finger fest – dann zählt, wo der Finger aufgesetzt wurde
+    var b = e.target.closest(".pl") || (downTarget && downTarget.closest && downTarget.closest(".pl"));
     if(!b) return;
     var pIdx = +b.dataset.p;
     if(pIdx == null || !paraSent[pIdx]) return;
@@ -941,17 +1034,11 @@
 
   // Ausschnitt (r in Anteilen 0…1) herausschneiden, verkleinern/vergrößern und für die Erkennung aufbereiten.
   // Ergebnis: zwei Fassungen – "enhanced" (Kontrast Stück für Stück verstärkt) und "plain" (nur gestreckt).
-  function prepare(img, r){
-    var nw = img.naturalWidth, nh = img.naturalHeight;
-    var sx = Math.round(r.x * nw), sy = Math.round(r.y * nh);
-    var sw = Math.max(1, Math.round(r.w * nw)), sh = Math.max(1, Math.round(r.h * nh));
-    // kleine Ausschnitte etwas vergrößern, große verkleinern
-    var sc = Math.min(2, 2400 / Math.max(sw, sh));
-    var c = document.createElement("canvas");
-    c.width = Math.round(sw * sc); c.height = Math.round(sh * sc);
+  // q: Viereck (4 Ecken in Anteilen) oder Rechteck {x,y,w,h}
+  function prepare(img, q){
+    if(!Array.isArray(q)) q = rectQuad(q.x, q.y, q.x + q.w, q.y + q.h);
+    var c = warp(img, q);
     var g = c.getContext("2d");
-    g.imageSmoothingQuality = "high";
-    g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
     var preview = c.toDataURL("image/jpeg", 0.7);
     // Foto für die Foto-Ansicht: höchstens 1600 Pixel, damit es auf dem iPad gespeichert werden kann
     var ps = Math.min(1, 1600 / Math.max(c.width, c.height)), pc = document.createElement("canvas");
@@ -1048,10 +1135,12 @@
     return out;
   }
 
-  /* ---------- Bereich auf dem Foto wählen ---------- */
-  var cropState = null;   // { img, url, r: {x,y,w,h} in Anteilen, box: angezeigtes Bild in px }
-  var MIN = 0.06;
+  /* ---------- Bereich auf dem Foto wählen (Viereck mit 4 Ecken) ---------- */
+  // q: Ecken in Anteilen 0…1, Reihenfolge oben links, oben rechts, unten rechts, unten links
+  var cropState = null;   // { img, url, q: [[x,y]×4], box: angezeigtes Bild in px }
+  var quadEl = $("quad"), SVGNS = "http://www.w3.org/2000/svg";
 
+  function rectQuad(x0, y0, x1, y1){ return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; }
   function layoutCrop(){
     if(!cropState) return;
     var aw = cropArea.clientWidth, ah = cropArea.clientHeight;
@@ -1061,14 +1150,26 @@
     cropState.box = { x: x, y: y, w: w, h: h };
     cropImg.style.left = x + "px"; cropImg.style.top = y + "px";
     cropImg.style.width = w + "px"; cropImg.style.height = h + "px";
-    drawFrame();
+    drawQuad();
   }
-  function drawFrame(){
-    var b = cropState.box, r = cropState.r;
-    frame.style.left = (b.x + r.x * b.w) + "px";
-    frame.style.top = (b.y + r.y * b.h) + "px";
-    frame.style.width = (r.w * b.w) + "px";
-    frame.style.height = (r.h * b.h) + "px";
+  function px(p){ var b = cropState.box; return [b.x + p[0] * b.w, b.y + p[1] * b.h]; }
+  function drawQuad(){
+    var q = cropState.q.map(px), aw = cropArea.clientWidth, ah = cropArea.clientHeight;
+    var poly = q.map(function(p){ return p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" ");
+    function lerp(a, b, t){ return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+    var grid = "";
+    [1 / 3, 2 / 3].forEach(function(t){
+      var a = lerp(q[0], q[1], t), b = lerp(q[3], q[2], t), c = lerp(q[0], q[3], t), d = lerp(q[1], q[2], t);
+      grid += "M" + a + "L" + b + "M" + c + "L" + d;
+    });
+    var html = '<path class="mask" d="M-4000,-4000H' + (aw + 4000) + 'V' + (ah + 4000) + 'H-4000Z M' + q.map(function(p){ return p.join(","); }).join(" L") + 'Z"/>' +
+      '<polygon class="edge" data-h="move" points="' + poly + '"/>' +
+      '<path class="grid" d="' + grid + '"/>';
+    q.forEach(function(p, i){
+      html += '<circle class="hit" data-h="' + i + '" cx="' + p[0] + '" cy="' + p[1] + '" r="30"/>' +
+              '<circle class="knob" data-h="' + i + '" cx="' + p[0] + '" cy="' + p[1] + '" r="13"/>';
+    });
+    quadEl.innerHTML = html;
   }
   function showCrop(on){
     crop.hidden = !on;
@@ -1077,66 +1178,65 @@
     if(on){ empty.hidden = true; }
   }
   function startCrop(loaded){
-    cropState = { img: loaded.img, url: loaded.url, r: { x: 0.05, y: 0.05, w: 0.9, h: 0.9 } };
+    cropState = { img: loaded.img, url: loaded.url, q: rectQuad(0.05, 0.05, 0.95, 0.95) };
     cropImg.src = loaded.url;
     showCrop(true);
     layoutCrop();
   }
   function endCrop(keepPhoto){
     if(cropState && !keepPhoto) URL.revokeObjectURL(cropState.url);
-    cropState = null; cropImg.removeAttribute("src");
+    cropState = null; cropImg.removeAttribute("src"); quadEl.innerHTML = "";
     showCrop(false);
   }
 
-  // Ziehen: an einer Ecke = Größe ändern, im Rahmen = verschieben, daneben = neuen Rahmen aufziehen
+  // Ziehen: Ecke = nur diese Ecke, im Viereck = alles verschieben, daneben = neues Rechteck aufziehen
   var drag = null;
   function pt(e){
     var a = cropArea.getBoundingClientRect(), b = cropState.box;
-    return { x: (e.clientX - a.left - b.x) / b.w, y: (e.clientY - a.top - b.y) / b.h };
+    return [(e.clientX - a.left - b.x) / b.w, (e.clientY - a.top - b.y) / b.h];
   }
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
   cropArea.addEventListener("pointerdown", function(e){
     if(!cropState) return;
     e.preventDefault();
-    var p = pt(e), r = cropState.r;
-    var h = e.target.dataset && e.target.dataset.h;
-    if(h) drag = { mode: h };
-    else if(e.target === frame) drag = { mode: "move", dx: p.x - r.x, dy: p.y - r.y };
+    var p = pt(e), h = e.target.getAttribute && e.target.getAttribute("data-h");
+    if(h === "move") drag = { mode: "move", start: p, q0: cropState.q.map(function(c){ return c.slice(); }) };
+    else if(h != null) drag = { mode: "corner", i: +h };
     else{
-      var x = clamp(p.x, 0, 1), y = clamp(p.y, 0, 1);
+      var x = clamp(p[0], 0, 1), y = clamp(p[1], 0, 1);
       drag = { mode: "new", ax: x, ay: y };
-      cropState.r = { x: x, y: y, w: 0, h: 0 };
+      cropState.q = rectQuad(x, y, x, y);
     }
     try{ cropArea.setPointerCapture(e.pointerId); }catch(err){}
   });
   cropArea.addEventListener("pointermove", function(e){
     if(!drag || !cropState) return;
-    var p = pt(e), r = cropState.r;
-    var x = clamp(p.x, 0, 1), y = clamp(p.y, 0, 1);
-    if(drag.mode === "move"){
-      r.x = clamp(p.x - drag.dx, 0, 1 - r.w);
-      r.y = clamp(p.y - drag.dy, 0, 1 - r.h);
-    }else if(drag.mode === "new"){
-      r.x = Math.min(drag.ax, x); r.y = Math.min(drag.ay, y);
-      r.w = Math.abs(x - drag.ax); r.h = Math.abs(y - drag.ay);
+    var p = pt(e), x = clamp(p[0], 0, 1), y = clamp(p[1], 0, 1);
+    if(drag.mode === "corner"){
+      cropState.q[drag.i] = [x, y];
+    }else if(drag.mode === "move"){
+      var dx = p[0] - drag.start[0], dy = p[1] - drag.start[1];
+      var xs = drag.q0.map(function(c){ return c[0]; }), ys = drag.q0.map(function(c){ return c[1]; });
+      dx = clamp(dx, -Math.min.apply(0, xs), 1 - Math.max.apply(0, xs));
+      dy = clamp(dy, -Math.min.apply(0, ys), 1 - Math.max.apply(0, ys));
+      cropState.q = drag.q0.map(function(c){ return [c[0] + dx, c[1] + dy]; });
     }else{
-      var L = r.x, T = r.y, R = r.x + r.w, B = r.y + r.h;
-      if(drag.mode.indexOf("w") >= 0) L = Math.min(x, R - MIN);
-      if(drag.mode.indexOf("e") >= 0) R = Math.max(x, L + MIN);
-      if(drag.mode.indexOf("n") >= 0) T = Math.min(y, B - MIN);
-      if(drag.mode.indexOf("s") >= 0) B = Math.max(y, T + MIN);
-      r.x = L; r.y = T; r.w = R - L; r.h = B - T;
+      cropState.q = rectQuad(Math.min(drag.ax, x), Math.min(drag.ay, y), Math.max(drag.ax, x), Math.max(drag.ay, y));
     }
-    drawFrame();
+    drawQuad();
   });
+  function quadArea(q){
+    var a = 0;
+    for(var i = 0; i < 4; i++){ var j = (i + 1) % 4; a += q[i][0] * q[j][1] - q[j][0] * q[i][1]; }
+    return Math.abs(a / 2);
+  }
   function endDrag(){
     if(!drag || !cropState) return;
-    var r = cropState.r;
-    if(r.w < MIN || r.h < MIN){        // nur getippt: Rahmen um die Stelle legen
-      var cx = r.x + r.w / 2, cy = r.y + r.h / 2;
-      r.w = Math.max(r.w, 0.3); r.h = Math.max(r.h, 0.2);
-      r.x = clamp(cx - r.w / 2, 0, 1 - r.w); r.y = clamp(cy - r.h / 2, 0, 1 - r.h);
-      drawFrame();
+    if(drag.mode === "new" && quadArea(cropState.q) < 0.004){   // nur getippt: Rahmen um die Stelle legen
+      var c = cropState.q[0];
+      var x0 = clamp(c[0] - 0.2, 0, 0.6), y0 = clamp(c[1] - 0.12, 0, 0.76);
+      cropState.q = rectQuad(x0, y0, x0 + 0.4, y0 + 0.24);
+      drawQuad();
     }
     drag = null;
   }
@@ -1145,13 +1245,85 @@
   window.addEventListener("resize", layoutCrop);
 
   cropCancel.addEventListener("click", function(){ endCrop(false); render(); });
-  cropAll.addEventListener("click", function(){ if(cropState){ cropState.r = { x: 0, y: 0, w: 1, h: 1 }; drawFrame(); } });
+  cropAll.addEventListener("click", function(){ if(cropState){ cropState.q = rectQuad(0, 0, 1, 1); drawQuad(); } });
   cropGo.addEventListener("click", function(){
     if(!cropState) return;
     var st = cropState;
+    // Ecken sortieren, falls sie überkreuz gezogen wurden: oben links, oben rechts, unten rechts, unten links
+    var q = st.q.slice(), cx = q.reduce(function(s, p){ return s + p[0]; }, 0) / 4, cy = q.reduce(function(s, p){ return s + p[1]; }, 0) / 4;
+    q.sort(function(a, b){ return Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx); });
+    // nach Winkel sortiert beginnt die Liste oben links (Winkel um -135°)
     endCrop(true);
-    recognize(st.img, st.url, st.r);
+    recognize(st.img, st.url, q);
   });
+
+  /* ---------- Entzerren: Viereck aus dem Foto → gerades Rechteck ---------- */
+  // Matrix, die Punkte des Ziel-Rechtecks (0…W, 0…H) auf das Viereck im Foto abbildet
+  function homography(W, H, q){
+    var src = [[0, 0], [W, 0], [W, H], [0, H]], A = [], bb = [];
+    for(var i = 0; i < 4; i++){
+      var x = src[i][0], y = src[i][1], u = q[i][0], v = q[i][1];
+      A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); bb.push(u);
+      A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); bb.push(v);
+    }
+    // Gauß-Verfahren
+    for(var c = 0; c < 8; c++){
+      var m = c;
+      for(var r = c + 1; r < 8; r++) if(Math.abs(A[r][c]) > Math.abs(A[m][c])) m = r;
+      var t = A[c]; A[c] = A[m]; A[m] = t; t = bb[c]; bb[c] = bb[m]; bb[m] = t;
+      for(r = 0; r < 8; r++){
+        if(r === c) continue;
+        var f = A[r][c] / A[c][c];
+        for(var k = c; k < 8; k++) A[r][k] -= f * A[c][k];
+        bb[r] -= f * bb[c];
+      }
+    }
+    return bb.map(function(v, i){ return v / A[i][i]; });
+  }
+  function dist(a, b){ return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+  // liefert eine Leinwand mit dem gerade gezogenen Ausschnitt (höchstens 2400 Pixel)
+  function warp(img, qn){
+    var nw = img.naturalWidth, nh = img.naturalHeight;
+    // Quelle auf höchstens 3000 Pixel verkleinern (Speicher auf dem iPad)
+    var ss = Math.min(1, 3000 / Math.max(nw, nh));
+    var sw = Math.round(nw * ss), sh = Math.round(nh * ss);
+    var sc = document.createElement("canvas"); sc.width = sw; sc.height = sh;
+    var sg = sc.getContext("2d"); sg.imageSmoothingQuality = "high"; sg.drawImage(img, 0, 0, sw, sh);
+    var q = qn.map(function(p){ return [p[0] * sw, p[1] * sh]; });
+    var W = Math.max(dist(q[0], q[1]), dist(q[3], q[2])), H = Math.max(dist(q[0], q[3]), dist(q[1], q[2]));
+    var k = Math.min(2, 2400 / Math.max(W, H));
+    W = Math.max(8, Math.round(W * k)); H = Math.max(8, Math.round(H * k));
+    var c = document.createElement("canvas"); c.width = W; c.height = H;
+    var g = c.getContext("2d");
+    // fast ein gerades Rechteck: einfach ausschneiden (schneller, schärfer)
+    var xs = q.map(function(p){ return p[0]; }), ys = q.map(function(p){ return p[1]; });
+    var straight = Math.abs(q[0][1] - q[1][1]) < 2 && Math.abs(q[3][1] - q[2][1]) < 2 && Math.abs(q[0][0] - q[3][0]) < 2 && Math.abs(q[1][0] - q[2][0]) < 2;
+    if(straight){
+      g.imageSmoothingQuality = "high";
+      var x0 = Math.min.apply(0, xs), y0 = Math.min.apply(0, ys);
+      g.drawImage(sc, x0, y0, Math.max(1, Math.max.apply(0, xs) - x0), Math.max(1, Math.max.apply(0, ys) - y0), 0, 0, W, H);
+      return c;
+    }
+    var h = homography(W, H, q);
+    var src = sg.getImageData(0, 0, sw, sh).data, out = g.createImageData(W, H), od = out.data;
+    for(var y = 0; y < H; y++){
+      for(var x = 0; x < W; x++){
+        var d = h[6] * x + h[7] * y + 1;
+        var u = (h[0] * x + h[1] * y + h[2]) / d, v = (h[3] * x + h[4] * y + h[5]) / d;
+        var o = (y * W + x) * 4;
+        if(u < 0 || v < 0 || u >= sw - 1 || v >= sh - 1){ od[o] = od[o + 1] = od[o + 2] = 255; od[o + 3] = 255; continue; }
+        var ui = u | 0, vi = v | 0, fu = u - ui, fv = v - vi, i0 = (vi * sw + ui) * 4, i1 = i0 + sw * 4;
+        for(var ch = 0; ch < 3; ch++){
+          var a0 = src[i0 + ch] + (src[i0 + 4 + ch] - src[i0 + ch]) * fu;
+          var a1 = src[i1 + ch] + (src[i1 + 4 + ch] - src[i1 + ch]) * fu;
+          od[o + ch] = a0 + (a1 - a0) * fv;
+        }
+        od[o + 3] = 255;
+      }
+    }
+    g.putImageData(out, 0, 0);
+    return c;
+  }
 
   function setBusy(on){
     busy.hidden = !on;
@@ -1174,9 +1346,9 @@
   }
 
   // Schritt 2: gewählten Bereich lesen
-  function recognize(img, url, r){
+  function recognize(img, url, q){
     setBusy(true);
-    var p = prepare(img, r);
+    var p = prepare(img, q);
     if(photoURL) URL.revokeObjectURL(photoURL);
     photoURL = url;
     busyPhoto.style.backgroundImage = 'url("' + p.preview + '")';
@@ -1380,7 +1552,7 @@
   if(typeof Tesseract !== "undefined") setTimeout(function(){ getWorker().catch(function(){}); }, 1200);
 
   // für Tests
-  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad, prepare: prepare, crop: function(){ return cropState && cropState.r; } };
+  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad, prepare: prepare, crop: function(){ return cropState && cropState.q; } };
 })();
 </script>
 </body>
