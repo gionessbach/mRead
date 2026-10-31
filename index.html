@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="mRead">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F5F4EF">
+<title>mRead</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* Layout: ein Bildschirm – oben Name und Anzeige-Optionen, in der Mitte das Lesepult, unten Foto · Vorlesen · Tempo */
+  :root{
+    --bg:#F5F4EF;          /* Hintergrund, leicht warmes Grau */
+    --sheet:#FFFFFF;       /* Lesefläche */
+    --ink:#26261F;         /* Anthrazit: Text, Symbole */
+    --muted:#8C8A7E;       /* Hinweise */
+    --line:#E3E1D8;        /* Ränder */
+    --yellow:#FDD002;      /* Hauptfarbe (wie das Logo) */
+    --yellow-deep:#D9B000; /* Schatten der gelben Knöpfe */
+    --mark:#FDD002;        /* gerade gelesenes Wort */
+    --mark-soft:#FFF6C4;   /* gerade gelesener Satz */
+    --font-kid:"Andika","Comic Neue",system-ui,-apple-system,sans-serif;
+    --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--font-ui);
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    touch-action:manipulation;overflow:hidden;
+  }
+  .app{
+    height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:16px;
+    padding-top:max(16px, env(safe-area-inset-top,0px));
+    padding-bottom:max(16px, env(safe-area-inset-bottom,0px));
+    padding-left:max(16px, env(safe-area-inset-left,0px));
+    padding-right:max(16px, env(safe-area-inset-right,0px));
+  }
+  button{font:inherit;color:inherit}
+  button:focus-visible{outline:4px solid #6E9BFF;outline-offset:3px}
+
+  /* Obere Leiste */
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-kid);font-weight:700;font-size:28px;letter-spacing:.01em}
+  .brand img{width:44px;height:44px;border-radius:11px}
+  .group{display:flex;align-items:center;gap:12px}
+  .toggle{display:flex;background:var(--sheet);border:2px solid var(--line);border-radius:999px;padding:4px;gap:4px}
+  .toggle button{
+    font-family:var(--font-kid);font-size:26px;font-weight:700;color:var(--muted);
+    background:none;border:0;border-radius:999px;min-width:84px;height:52px;padding:0 16px;cursor:pointer;
+    transition:background .2s,color .2s;
+  }
+  .toggle button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+  .toggle button:disabled{opacity:.35}
+  .round{
+    width:64px;height:64px;border-radius:50%;border:2px solid var(--line);background:var(--sheet);
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);padding:0;
+    transition:background .2s,border-color .2s;
+  }
+  .round svg{width:30px;height:30px}
+  .round:disabled{opacity:.35}
+  .thumb{width:64px;height:64px;border-radius:16px;border:2px solid var(--line);background:var(--sheet) center/cover no-repeat;cursor:pointer;padding:0}
+
+  /* Lesefläche */
+  .stage{position:relative;min-height:0;background:var(--sheet);border:2px solid var(--line);border-radius:28px;overflow:hidden}
+  .scroller{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:clamp(20px,4vw,48px)}
+  .text{
+    font-family:var(--font-kid);line-height:1.55;max-width:32em;margin:0 auto;
+    word-break:normal;overflow-wrap:break-word;hyphens:none;
+  }
+  .text p{margin:0 0 .7em}
+  .w{border-radius:.18em;padding:0 .06em;margin:0 -.06em;cursor:pointer;transition:background .15s}
+  .s.cur{background:var(--mark-soft);border-radius:.18em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  .w.cur{background:var(--mark)}
+  .w.masked{color:var(--muted);cursor:default}
+
+  .empty,.busy{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    padding:24px;text-align:center;
+  }
+  .empty svg{width:150px;height:150px}
+  .empty .big,.busy .big{font-family:var(--font-kid);font-weight:700;font-size:clamp(26px,3.6vw,38px)}
+  .empty .small,.busy .small{color:var(--muted);font-size:18px;max-width:30em;line-height:1.4}
+  .busy{background:var(--sheet)}
+  .busy .photo{
+    width:min(70%,520px);aspect-ratio:4/3;max-width:100%;border-radius:18px;background:var(--bg) center/cover no-repeat;
+    position:relative;overflow:hidden;
+  }
+  .busy .photo::after{
+    content:"";position:absolute;left:0;right:0;height:22%;
+    background:linear-gradient(to bottom,rgba(253,208,2,0),rgba(253,208,2,.55),rgba(253,208,2,0));
+    animation:scan 1.8s ease-in-out infinite alternate;
+  }
+  @keyframes scan{from{top:-22%}to{top:100%}}
+  .progress{width:min(70%,520px);height:12px;border-radius:999px;background:var(--bg);overflow:hidden}
+  .progress i{display:block;height:100%;width:0;background:var(--yellow);border-radius:999px;transition:width .3s}
+
+  .msg{
+    position:absolute;left:50%;bottom:16px;transform:translateX(-50%);max-width:calc(100% - 32px);z-index:3;
+    background:var(--ink);color:#fff;font-size:17px;line-height:1.4;padding:12px 18px;border-radius:14px;text-align:center;
+  }
+
+  /* Untere Leiste */
+  .controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px}
+  .controls .left{justify-self:start;display:flex;gap:12px}
+  .controls .right{justify-self:end;display:flex;gap:12px}
+  .big-btn{
+    width:112px;height:112px;border-radius:50%;border:0;cursor:pointer;
+    background:var(--yellow);color:var(--ink);display:grid;place-items:center;
+    box-shadow:0 6px 0 var(--yellow-deep);transition:transform .1s,box-shadow .1s;
+  }
+  .big-btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--yellow-deep)}
+  .big-btn svg{width:54px;height:54px}
+  .big-btn.playing{background:var(--ink);color:var(--yellow);box-shadow:0 6px 0 #000}
+  .speed{width:auto;padding:0 18px 0 14px;gap:8px;border-radius:999px;font-family:var(--font-kid);font-weight:700;font-size:20px}
+  .speed svg{width:34px;height:34px}
+
+  /* Foto groß ansehen */
+  .viewer{
+    position:fixed;inset:0;z-index:10;background:rgba(20,20,16,.92);display:flex;align-items:center;justify-content:center;
+    padding:max(16px, env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) max(16px, env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px));
+  }
+  .viewer img{max-width:100%;max-height:100%;border-radius:12px;object-fit:contain}
+  .viewer .round{position:absolute;top:max(16px, env(safe-area-inset-top,0px));right:max(16px, env(safe-area-inset-right,0px))}
+
+  .file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+  @media (prefers-reduced-motion:reduce){ .busy .photo::after{animation:none;top:39%} }
+  @media (max-width:560px){ .brand span{display:none} .toggle button{min-width:64px} }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="bar">
+    <div class="brand"><img src="apple-touch-icon.png" alt=""><span>mRead</span></div>
+    <div class="group">
+      <button id="photoBtn" class="thumb" type="button" aria-label="Foto ansehen" hidden></button>
+      <div class="toggle" role="group" aria-label="Schriftgröße">
+        <button id="smaller" type="button" aria-label="Schrift kleiner">A−</button>
+        <button id="bigger" type="button" aria-label="Schrift größer">A+</button>
+      </div>
+      <div class="toggle" role="group" aria-label="Schreibweise">
+        <button id="modeNormal" type="button" aria-pressed="true">Abc</button>
+        <button id="modeUpper" type="button" aria-pressed="false">ABC</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="stage">
+    <div class="scroller" id="scroller"><div class="text" id="text"></div></div>
+
+    <div class="empty" id="empty">
+      <svg viewBox="0 0 120 120" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="10" y="30" width="100" height="72" rx="16" fill="#FDD002"/>
+        <path d="M40 30l7-12h26l7 12" stroke="#26261F" stroke-width="7"/>
+        <circle cx="60" cy="66" r="22" fill="#fff" stroke="#26261F" stroke-width="7"/>
+        <path d="M52 61h16M52 70h11" stroke="#26261F" stroke-width="5"/>
+      </svg>
+      <div class="big">Mach ein Foto von einem Text.</div>
+      <div class="small">Halte das iPad ruhig und gerade über die Seite. Dann lese ich dir den Text vor.</div>
+    </div>
+
+    <div class="busy" id="busy" hidden>
+      <div class="photo" id="busyPhoto"></div>
+      <div class="big">Ich lese …</div>
+      <div class="progress"><i id="bar"></i></div>
+      <div class="small" id="busyText">Einen Moment bitte.</div>
+    </div>
+
+    <div class="msg" id="msg" hidden></div>
+  </main>
+
+  <div class="controls">
+    <div class="left">
+      <button id="camSmall" class="round" type="button" aria-label="Neues Foto" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+      <button id="galleryBtn" class="round" type="button" aria-label="Bild aus Fotos wählen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
+      </button>
+    </div>
+    <button id="mainBtn" class="big-btn" type="button" aria-label="Foto machen"></button>
+    <div class="right">
+      <button id="speedBtn" class="round speed" type="button" aria-label="Tempo umschalten"></button>
+    </div>
+  </div>
+</div>
+
+<div class="viewer" id="viewer" hidden>
+  <img id="viewerImg" alt="Dein Foto">
+  <button id="viewerClose" class="round" type="button" aria-label="Schließen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</div>
+
+<input id="camInput" class="file" type="file" accept="image/*" capture="environment">
+<input id="galleryInput" class="file" type="file" accept="image/*">
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var $ = function(id){ return document.getElementById(id); };
+  var textEl = $("text"), scroller = $("scroller"), empty = $("empty"), busy = $("busy"), msg = $("msg");
+  var bar = $("bar"), busyText = $("busyText"), busyPhoto = $("busyPhoto");
+  var mainBtn = $("mainBtn"), camSmall = $("camSmall"), galleryBtn = $("galleryBtn"), speedBtn = $("speedBtn");
+  var camInput = $("camInput"), galleryInput = $("galleryInput");
+  var modeNormal = $("modeNormal"), modeUpper = $("modeUpper"), smaller = $("smaller"), bigger = $("bigger");
+  var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
+
+  var ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>';
+  var ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></svg>';
+  var ICON_STOP = '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
+  var ICON_SLOW = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-6 4.5-10 10-10s10 4 10 10z" fill="#FDD002"/><path d="M9 21l-1 4M21 21l1 4M25 19c2 0 3.5-1.5 3.5-3.5S27 13 25.5 13"/><path d="M11 15.5l4 3 4-3"/></svg>';
+  var ICON_FAST = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 22c0-5 3-8 8-8 4 0 7 3 7 6 0 2-1.5 3-3.5 3H11z" fill="#FDD002"/><path d="M22 15c0-4 1-9 3-9s1.5 5 0 9M19 14.5c-1-4-.5-8.5 1-8.5"/><circle cx="23" cy="18" r=".8" fill="currentColor"/><path d="M10 22c-2 0-4-1-4-3"/></svg>';
+
+  /* ---------- Zustand ---------- */
+  var paras = [];          // [[Wort, Wort, …], …] – erkannter Text
+  var upper = false;
+  var slow = false;
+  var sizes = [32, 40, 48, 58, 70, 84], sizeIdx = 2;
+  var photoURL = null;
+  var playing = false, resumeFrom = 0;
+
+  function save(){
+    try{ localStorage.setItem("mread", JSON.stringify({paras:paras, upper:upper, slow:slow, sizeIdx:sizeIdx})); }catch(e){}
+  }
+  function load(){
+    try{
+      var d = JSON.parse(localStorage.getItem("mread") || "null");
+      if(!d) return;
+      if(Array.isArray(d.paras)) paras = d.paras.filter(Array.isArray);
+      upper = !!d.upper; slow = !!d.slow;
+      if(d.sizeIdx >= 0 && d.sizeIdx < sizes.length) sizeIdx = d.sizeIdx;
+    }catch(e){}
+  }
+
+  /* ---------- Wortfilter (Jugendschutz) ----------
+     Gefilterte Wörter erscheinen als *** und werden nicht vorgelesen.
+     Eigene Wörter einfach in EIGENE_WOERTER eintragen, klein geschrieben, ß als ss.
+     Beispiel: var EIGENE_WOERTER = ["doofi", "bloedmann"];                        */
+  var EIGENE_WOERTER = [];
+
+  // Teil eines Wortes genügt (fängt auch zusammengesetzte Wörter ab)
+  var FILTER_ENTHAELT = [
+    "scheiss", "scheis", "fick", "fuck", "shit", "bitch", "wichs", "wixer", "wixx", "fotze",
+    "hure", "nutte", "schlampe", "arschloch", "missgeburt", "spast", "schwuchtel",
+    "kanake", "neger", "pimmel", "muschi", "titte", "piss", "kack",
+    "idiot", "trottel", "verpiss", "hackfresse", "miststueck", "miststuck", "drecksau", "bastard",
+    "porno", "kotze"
+  ];
+  // Wort beginnt damit (so bleiben z. B. "Marsch" und "Barsch" erlaubt)
+  var FILTER_BEGINNT = ["arsch", "depp", "kotz", "drecks", "blodmann", "bloedmann", "vollpfosten"];
+  // nur genau dieses Wort (so bleibt z. B. "fressen" erlaubt)
+  var FILTER_GENAU = ["fresse", "penner", "luder"];
+
+  var MASKE = "***";
+  var PUNCT_END = /[.,!?;:…"“”»«)]+$/;
+  function normalize(t){
+    return t.toLowerCase().replace(/ß/g, "ss").replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
+      .replace(/[^a-z*]/g, "");
+  }
+  function isBad(t){
+    var n = normalize(t);
+    if(!n) return false;
+    var m = n.replace(/ae/g, "a").replace(/oe/g, "o").replace(/ue/g, "u");
+    function hit(x){
+      if(FILTER_GENAU.indexOf(x) >= 0 || EIGENE_WOERTER.indexOf(x) >= 0) return true;
+      for(var i = 0; i < FILTER_BEGINNT.length; i++) if(x.indexOf(FILTER_BEGINNT[i]) === 0) return true;
+      for(var j = 0; j < FILTER_ENTHAELT.length; j++) if(x.indexOf(FILTER_ENTHAELT[j]) >= 0) return true;
+      for(var k = 0; k < EIGENE_WOERTER.length; k++) if(EIGENE_WOERTER[k] && x.indexOf(EIGENE_WOERTER[k]) >= 0) return true;
+      return false;
+    }
+    return hit(n) || hit(m);
+  }
+  function censor(t){
+    if(!isBad(t)) return t;
+    var tail = (t.match(PUNCT_END) || [""])[0];
+    return MASKE + tail;
+  }
+
+  function show(w){
+    if(!upper) return w;
+    return w.replace(/ß/g, "ẞ").toLocaleUpperCase("de-DE");   // ß wird zum großen ẞ statt zu "SS"
+  }
+
+  /* ---------- Erkannten Text aufräumen ---------- */
+  var LETTER = /[A-Za-zÄÖÜäöüß]/;
+  function cleanWord(t){
+    return t
+      .replace(/[|_~^`´{}\[\]<>\\@#$%&*=+]/g, "")
+      .replace(/[‘’‚]/g, "'")
+      .replace(/^[-–—'.,;:]+(?=[A-Za-zÄÖÜäöüß])/, "")
+      .trim();
+  }
+  // Tesseract-Ergebnis → Absätze aus Wörtern. Unsichere Zeilen (z. B. aus Bildern) fallen weg.
+  function toParas(data){
+    var out = [];
+    (data.paragraphs || []).forEach(function(p){
+      var words = [];
+      (p.lines || []).forEach(function(line){
+        var lw = (line.words || []).filter(function(w){ return w.text && w.text.trim(); });
+        if(!lw.length) return;
+        var letters = lw.map(function(w){ return w.text; }).join("").replace(/[^A-Za-zÄÖÜäöüß]/g, "").length;
+        var avg = lw.reduce(function(s, w){ return s + w.confidence; }, 0) / lw.length;
+        if(avg < 55 || letters < 2) return;                       // Zeile ist vermutlich kein Text
+        lw.forEach(function(w){
+          var t = cleanWord(w.text);
+          if(!t) return;
+          if(w.confidence < 35 && !LETTER.test(t)) return;         // einzelne Krümel
+          if(!LETTER.test(t) && !/^[0-9]+[.,:]?$/.test(t) && !/^[–—-]$/.test(t)) return;
+          // Trennstrich am Zeilenende: "Schmet-" + "terling" → "Schmetterling"
+          var prev = words[words.length - 1];
+          if(prev && prev.joinNext){
+            words[words.length - 1] = { text: prev.text.slice(0, -1) + t };
+          }else{
+            words.push({ text: t });
+          }
+        });
+        var last = words[words.length - 1];
+        if(last && /[A-Za-zÄÖÜäöüß]-$/.test(last.text)) last.joinNext = true;
+      });
+      if(!words.length) return;
+      // Tesseract trennt manchmal mitten im Satz einen neuen Absatz ab: dann wieder anhängen
+      var prevP = out[out.length - 1];
+      var first = words[0].text;
+      if(prevP){
+        var tail = prevP[prevP.length - 1];
+        if(tail.joinNext && /^[a-zäöüß]/.test(first)){
+          prevP[prevP.length - 1] = { text: tail.text.slice(0, -1) + first, joinNext: words[0].joinNext };
+          words.shift();
+          Array.prototype.push.apply(prevP, words);
+          return;
+        }
+        if(!/[.!?…:"“”»«)]$/.test(tail.text) && /^[a-zäöüß]/.test(first)){
+          Array.prototype.push.apply(prevP, words);
+          return;
+        }
+      }
+      out.push(words);
+    });
+    return out.map(function(ws){
+      return ws.map(function(w){ return censor(w.joinNext ? w.text.replace(/-$/, "") : w.text); });
+    });
+  }
+
+  /* ---------- Darstellung ---------- */
+  var tokens = [];     // {el, text, sentence}
+  var sentences = [];  // [[tokenIndex, …], …]
+
+  function render(){
+    textEl.replaceChildren();
+    tokens = []; sentences = [];
+    var sIdx = -1, startNew = true;
+    paras.forEach(function(words){
+      var p = document.createElement("p");
+      var sEl = null;
+      startNew = true;
+      words.forEach(function(w, i){
+        if(startNew){
+          sIdx++; sentences.push([]);
+          sEl = document.createElement("span"); sEl.className = "s"; sEl.dataset.s = sIdx;
+          p.appendChild(sEl);
+          startNew = false;
+        }else{
+          sEl.appendChild(document.createTextNode(" "));
+        }
+        var span = document.createElement("span");
+        span.className = "w" + (w.indexOf(MASKE) === 0 ? " masked" : "");
+        span.textContent = show(w);
+        span.dataset.i = tokens.length;
+        sEl.appendChild(span);
+        sentences[sIdx].push(tokens.length);
+        tokens.push({ el: span, text: w, sentence: sIdx });
+        if(/[.!?…]["“”»«)]*$/.test(w)) startNew = true;
+        if(!startNew && i === words.length - 1) startNew = true;
+        if(startNew && i < words.length - 1) p.appendChild(document.createTextNode(" "));
+      });
+      textEl.appendChild(p);
+    });
+    textEl.style.fontSize = sizes[sizeIdx] + "px";
+    var has = tokens.length > 0;
+    empty.hidden = has || !busy.hidden;
+    camSmall.hidden = !has;
+    photoBtn.hidden = !photoURL;
+    photoBtn.style.backgroundImage = photoURL ? 'url("' + photoURL + '")' : "";
+    smaller.disabled = !has || sizeIdx === 0;
+    bigger.disabled = !has || sizeIdx === sizes.length - 1;
+    updateButtons();
+  }
+
+  function updateButtons(){
+    var has = tokens.length > 0;
+    if(!has){ mainBtn.innerHTML = ICON_CAM; mainBtn.setAttribute("aria-label", "Foto machen"); }
+    else if(playing){ mainBtn.innerHTML = ICON_STOP; mainBtn.setAttribute("aria-label", "Vorlesen stoppen"); }
+    else{ mainBtn.innerHTML = ICON_PLAY; mainBtn.setAttribute("aria-label", "Vorlesen"); }
+    mainBtn.classList.toggle("playing", playing);
+    speedBtn.innerHTML = (slow ? ICON_SLOW : ICON_FAST) + (slow ? "Langsam" : "Normal");
+    speedBtn.setAttribute("aria-label", slow ? "Tempo: langsam" : "Tempo: normal");
+    modeNormal.setAttribute("aria-pressed", String(!upper));
+    modeUpper.setAttribute("aria-pressed", String(upper));
+  }
+
+  function toast(t, ms){
+    msg.textContent = t; msg.hidden = false;
+    clearTimeout(toast._t);
+    if(ms) toast._t = setTimeout(function(){ msg.hidden = true; }, ms);
+  }
+
+  /* ---------- Vorlesen ---------- */
+  var voice = null;
+  function pickVoice(){
+    if(!("speechSynthesis" in window)) return;
+    var vs = speechSynthesis.getVoices().filter(function(v){ return /^de/i.test(v.lang); });
+    voice = vs.filter(function(v){ return /anna|petra|helena|marlene/i.test(v.name); })[0] || vs[0] || null;
+  }
+  if("speechSynthesis" in window){
+    pickVoice();
+    if(speechSynthesis.addEventListener) speechSynthesis.addEventListener("voiceschanged", pickVoice);
+  }
+
+  var curS = null, curW = null;
+  function mark(sIdx, tIdx){
+    if(curS){ curS.classList.remove("cur"); curS = null; }
+    if(curW){ curW.classList.remove("cur"); curW = null; }
+    if(sIdx != null){
+      curS = textEl.querySelector('.s[data-s="' + sIdx + '"]');
+      if(curS) curS.classList.add("cur");
+    }
+    if(tIdx != null && tokens[tIdx]){
+      curW = tokens[tIdx].el; curW.classList.add("cur");
+      keepVisible(curW);
+    }else if(curS){ keepVisible(curS); }
+  }
+  function keepVisible(el){
+    var r = el.getBoundingClientRect(), sr = scroller.getBoundingClientRect();
+    if(r.top < sr.top + 40 || r.bottom > sr.bottom - 40){
+      scroller.scrollTo({ top: scroller.scrollTop + (r.top - sr.top) - sr.height / 3, behavior: "smooth" });
+    }
+  }
+
+  function rate(){ return slow ? 0.6 : 0.85; }
+  function speakable(t){ return t.indexOf(MASKE) !== 0; }
+
+  function utter(text){
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = "de-DE"; u.rate = rate();
+    if(voice) u.voice = voice;
+    return u;
+  }
+
+  function stopReading(){
+    if("speechSynthesis" in window) speechSynthesis.cancel();
+    playing = false;
+    mark(null, null);
+    updateButtons();
+  }
+
+  // Liest ab Satz "from" alle Sätze vor; das aktuelle Wort wird markiert.
+  function readFrom(from){
+    if(!("speechSynthesis" in window)){ toast("Dieses Gerät kann leider nicht vorlesen.", 4000); return; }
+    speechSynthesis.cancel();
+    if(from >= sentences.length) from = 0;
+    playing = true; updateButtons();
+    var last = null;
+    for(var s = from; s < sentences.length; s++){
+      (function(sIdx){
+        var idx = sentences[sIdx].filter(function(t){ return speakable(tokens[t].text); });
+        if(!idx.length) return;
+        var text = "", starts = [];
+        idx.forEach(function(t){
+          if(text) text += " ";
+          starts.push(text.length);
+          text += tokens[t].text;
+        });
+        var u = utter(text);
+        u.onstart = function(){ resumeFrom = sIdx; mark(sIdx, idx[0]); };
+        u.onboundary = function(e){
+          if(e.name && e.name !== "word") return;
+          var k = 0;
+          while(k + 1 < starts.length && starts[k + 1] <= e.charIndex) k++;
+          mark(sIdx, idx[k]);
+        };
+        speechSynthesis.speak(u);
+        last = u;
+      })(s);
+    }
+    if(!last){ playing = false; updateButtons(); return; }
+    last.onend = function(){ if(playing){ playing = false; resumeFrom = 0; mark(null, null); updateButtons(); } };
+  }
+
+  function readWord(tIdx){
+    if(!("speechSynthesis" in window)) return;
+    var t = tokens[tIdx];
+    if(!t || !speakable(t.text)) return;
+    speechSynthesis.cancel();
+    playing = false; updateButtons();
+    var u = utter(t.text.replace(PUNCT_END, "").replace(/^["„“»«(]+/, ""));
+    u.onstart = function(){ mark(null, tIdx); };
+    u.onend = u.onerror = function(){ if(!playing) mark(null, null); };
+    speechSynthesis.speak(u);
+    resumeFrom = t.sentence;
+  }
+
+  textEl.addEventListener("click", function(e){
+    var w = e.target.closest(".w");
+    if(!w || w.classList.contains("masked")) return;
+    readWord(+w.dataset.i);
+  });
+
+  /* ---------- Foto → Text ---------- */
+  var worker = null, workerReady = null, onProgress = null;
+  var STEPS = {
+    "loading tesseract core": [0, 0.15, "Ich mache mich bereit …"],
+    "initializing tesseract": [0.15, 0.2, "Ich mache mich bereit …"],
+    "loading language traineddata": [0.2, 0.4, "Ich lerne Deutsch … (nur beim ersten Mal)"],
+    "loading language traineddata (from cache)": [0.2, 0.4, "Ich mache mich bereit …"],
+    "initializing api": [0.4, 0.45, "Gleich geht's los …"],
+    "recognizing text": [0.45, 1, "Ich lese den Text …"]
+  };
+  function getWorker(){
+    if(!workerReady){
+      workerReady = Tesseract.createWorker("deu", 1, {
+        logger: function(m){ if(onProgress) onProgress(m); }
+      }).then(function(w){
+        worker = w;
+        return w.setParameters({ preserve_interword_spaces: "1" }).then(function(){ return w; });
+      }).catch(function(err){ workerReady = null; throw err; });
+    }
+    return workerReady;
+  }
+
+  // Foto verkleinern und in Graustufen umwandeln: schneller und meist genauer
+  function prepare(file){
+    return new Promise(function(resolve, reject){
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function(){
+        var max = 2400, w = img.naturalWidth, h = img.naturalHeight;
+        var sc = Math.min(1, max / Math.max(w, h));
+        var c = document.createElement("canvas");
+        c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+        var g = c.getContext("2d");
+        g.drawImage(img, 0, 0, c.width, c.height);
+        var d = g.getImageData(0, 0, c.width, c.height), px = d.data;
+        var lo = 255, hi = 0, i, v, gray = new Uint8ClampedArray(px.length / 4);
+        for(i = 0; i < gray.length; i++){
+          v = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+          gray[i] = v;
+        }
+        // Kontrast strecken (1 % ganz dunkel, 1 % ganz hell ignorieren)
+        var hist = new Uint32Array(256); for(i = 0; i < gray.length; i++) hist[gray[i]]++;
+        var cut = gray.length * 0.01, acc = 0;
+        for(lo = 0; lo < 255 && (acc += hist[lo]) < cut; lo++);
+        acc = 0;
+        for(hi = 255; hi > 0 && (acc += hist[hi]) < cut; hi--);
+        var span = Math.max(40, hi - lo);
+        for(i = 0; i < gray.length; i++){
+          v = (gray[i] - lo) * 255 / span;
+          px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = v;
+        }
+        g.putImageData(d, 0, 0);
+        resolve({ canvas: c, url: url });
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("bild")); };
+      img.src = url;
+    });
+  }
+
+  function setBusy(on){
+    busy.hidden = !on;
+    mainBtn.disabled = camSmall.disabled = galleryBtn.disabled = on;
+    if(on){ empty.hidden = true; bar.style.width = "0"; busyText.textContent = "Einen Moment bitte."; }
+  }
+
+  function handleFile(file){
+    if(!file) return;
+    stopReading();
+    if(typeof Tesseract === "undefined"){
+      toast("Die Texterkennung konnte nicht geladen werden. Bitte prüfe die Internetverbindung.", 5000);
+      return;
+    }
+    setBusy(true);
+    prepare(file).then(function(p){
+      if(photoURL) URL.revokeObjectURL(photoURL);
+      photoURL = p.url;
+      busyPhoto.style.backgroundImage = 'url("' + p.url + '")';
+      onProgress = function(m){
+        var st = STEPS[m.status];
+        if(!st) return;
+        bar.style.width = Math.round((st[0] + (st[1] - st[0]) * (m.progress || 0)) * 100) + "%";
+        busyText.textContent = st[2];
+      };
+      return getWorker().then(function(w){
+        return w.recognize(p.canvas, { rotateAuto: true }, { text: true, blocks: true });
+      });
+    }).then(function(res){
+      var found = toParas(res.data);
+      setBusy(false);
+      if(!found.length){
+        render();
+        toast("Ich konnte keinen Text finden. Halte das iPad ruhig und gerade über die Seite und versuch es nochmal.", 6000);
+        return;
+      }
+      paras = found; resumeFrom = 0;
+      scroller.scrollTop = 0;
+      save(); render();
+    }).catch(function(err){
+      setBusy(false); render();
+      toast(err && err.message === "bild"
+        ? "Das Bild konnte nicht geöffnet werden. Bitte versuch ein anderes."
+        : "Beim Lesen ist etwas schiefgegangen. Beim ersten Mal braucht mRead Internet.", 6000);
+    });
+  }
+
+  camInput.addEventListener("change", function(){ handleFile(camInput.files[0]); camInput.value = ""; });
+  galleryInput.addEventListener("change", function(){ handleFile(galleryInput.files[0]); galleryInput.value = ""; });
+  function openCamera(){ camInput.click(); }
+
+  /* ---------- Knöpfe ---------- */
+  mainBtn.addEventListener("click", function(){
+    if(!tokens.length){ openCamera(); return; }
+    if(playing) stopReading(); else readFrom(resumeFrom);
+  });
+  camSmall.addEventListener("click", openCamera);
+  galleryBtn.addEventListener("click", function(){ galleryInput.click(); });
+
+  speedBtn.addEventListener("click", function(){
+    slow = !slow; save(); updateButtons();
+    if(playing) readFrom(resumeFrom);
+  });
+  function setUpper(v){ upper = v; save(); var keep = scroller.scrollTop; render(); scroller.scrollTop = keep; }
+  modeNormal.addEventListener("click", function(){ if(upper){ stopReading(); setUpper(false); } });
+  modeUpper.addEventListener("click", function(){ if(!upper){ stopReading(); setUpper(true); } });
+  smaller.addEventListener("click", function(){ if(sizeIdx > 0){ sizeIdx--; save(); render(); } });
+  bigger.addEventListener("click", function(){ if(sizeIdx < sizes.length - 1){ sizeIdx++; save(); render(); } });
+
+  photoBtn.addEventListener("click", function(){ if(!photoURL) return; viewerImg.src = photoURL; viewer.hidden = false; });
+  viewerClose.addEventListener("click", function(){ viewer.hidden = true; });
+  viewer.addEventListener("click", function(e){ if(e.target === viewer) viewer.hidden = true; });
+
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState !== "visible") stopReading(); });
+
+  load();
+  render();
+
+  // Texterkennung im Hintergrund schon vorbereiten, damit das erste Foto schneller geht
+  if(typeof Tesseract !== "undefined") setTimeout(function(){ getWorker().catch(function(){}); }, 1200);
+
+  // für Tests
+  window.__mr = { toParas: toParas, handleFile: handleFile, isBad: isBad };
+})();
+</script>
+</body>
+</html>
