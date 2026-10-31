@@ -2,10 +2,10 @@
    Beim ersten Öffnen werden App, Schrift und Texterkennung auf dem iPad gespeichert.
    Danach funktioniert mRead auch ohne Internet. KI-Stimmen werden gespeichert, sobald sie einmal geladen wurden.
    Bei Änderungen an Dateien in vendor/ oder tessdata/ die Versionsnummer erhöhen. */
-var APP = "mread-app-3";
+var APP = "mread-app-4";
 var BIG = "mread-voices-1";      // große Dateien (KI-Stimmen, Sprachmodelle) – bleiben bei App-Updates erhalten
 var SHELL = [
-  "./", "index.html", "apple-touch-icon.png", "favicon.png",
+  "./", "index.html", "apple-touch-icon.png", "favicon.png", "manifest.webmanifest", "icon-192.png",
   "vendor/andika/andika-latin-400-normal.woff2", "vendor/andika/andika-latin-700-normal.woff2",
   "vendor/andika/andika-latin-ext-400-normal.woff2", "vendor/andika/andika-latin-ext-700-normal.woff2",
   "vendor/tesseract/tesseract.min.js", "vendor/tesseract/worker.min.js", "vendor/tesseract/tesseract-core-simd-lstm.wasm.js",
@@ -24,10 +24,25 @@ self.addEventListener("activate", function(e){
 
 function isBig(url){ return /\/(voices|vendor\/piper|vendor\/ort)\//.test(url); }
 
+// Android: Foto oder Text über „Teilen“ an mRead schicken (siehe share_target in manifest.webmanifest)
+function shared(req){
+  return req.formData().then(function(fd){
+    var file = fd.get("image");
+    if(file && file.size){
+      return caches.open("mread-share").then(function(c){
+        return c.put("geteiltes-foto", new Response(file, { headers: { "Content-Type": file.type || "image/jpeg" } }));
+      }).then(function(){ return Response.redirect("./?geteilt=foto", 303); });
+    }
+    var text = [fd.get("title"), fd.get("text"), fd.get("url")].filter(function(t){ return t && String(t).trim(); }).join("\n");
+    return Response.redirect("./#t=" + encodeURIComponent(text), 303);
+  }).catch(function(){ return Response.redirect("./", 303); });
+}
+
 self.addEventListener("fetch", function(e){
   var req = e.request;
-  if(req.method !== "GET") return;
   var url = new URL(req.url);
+  if(req.method === "POST" && url.origin === location.origin && /\/teilen$/.test(url.pathname)){ e.respondWith(shared(req)); return; }
+  if(req.method !== "GET") return;
   if(url.origin !== location.origin) return;
   // die App selbst: erst im Internet nach einer neuen Fassung schauen, sonst die gespeicherte nehmen
   if(req.mode === "navigate" || /\/(index\.html)?$/.test(url.pathname)){

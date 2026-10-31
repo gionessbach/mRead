@@ -1,6 +1,6 @@
 # mRead
 
-Eine einfache Web-App fürs iPad, mit der Kinder Fotos von gedruckten Texten machen und sich den Text vorlesen lassen. Der erkannte Text erscheint groß in kindgerechter Druckschrift, beim Vorlesen läuft eine gelbe Markierung mit.
+Eine einfache Web-App fürs iPad und für Android-Handys/-Tablets, mit der Kinder Fotos von gedruckten Texten machen und sich den Text vorlesen lassen. Der erkannte Text erscheint groß in kindgerechter Druckschrift, beim Vorlesen läuft eine gelbe Markierung mit.
 
 **App öffnen:** https://gionessbach.github.io/mread/
 
@@ -72,6 +72,23 @@ Hinweis: Der Kurzbefehl öffnet mRead in **Safari**. Safari und ein Home-Bildsch
 3. Beim ersten Öffnen speichert die App sich selbst, die Schrift und die Texterkennung auf dem iPad (ca. 6 MB). Danach geht es auch ohne Internet.
    Tipp: Als Home-Bildschirm-App bleibt der Speicher dauerhaft erhalten; in Safari kann iPadOS ihn nach längerer Nichtbenutzung löschen.
 4. Tipp: Mit dem **Geführten Zugriff** (Einstellungen → Bedienungshilfen) lässt sich das iPad auf diese App sperren.
+
+## Einrichtung auf Android (Handy oder Tablet)
+
+Dieselbe Adresse funktioniert auch auf Android – es gibt nur eine mRead-Fassung, die sich ans Gerät anpasst (kompakte Ansicht auf dem Handy).
+
+1. Die Adresse oben in **Chrome** öffnen.
+2. Menü (⋮ oben rechts) → **App installieren** bzw. **Zum Startbildschirm hinzufügen**. mRead erscheint dann wie eine normale App mit eigenem Symbol.
+3. Beim ersten Foto fragt Android, ob mRead die Kamera nutzen darf: **Erlauben**.
+
+Danach geht alles wie auf dem iPad, auch ohne Internet. Zusätzlich auf Android:
+
+- **Teilen an mRead:** In der Galerie (oder Google Fotos) ein Foto öffnen → **Teilen** → **mRead**. Das Foto öffnet sich direkt zum Bereich-Wählen.
+- **Google Lens statt Kurzbefehl:** Den Kurzbefehl gibt es nur auf dem iPad. Auf Android liest **Google Lens** sehr genau: Kamera-App oder Google-App → Lens → auf den Text richten → **Text** → Text markieren → **Teilen** → **mRead** (oder „Kopieren“ und in mRead mit dem Klemmbrett-Knopf einfügen).
+- **Stimmen:** Die Stimme kommt von der Android-Sprachausgabe (meist „Google Sprachausgabe“). Schönere deutsche Stimmen: Android-Einstellungen → nach „Sprachausgabe“ suchen → Google Sprachausgabe → Sprachdaten installieren → Deutsch. Oder einfach eine **KI-Stimme** in mRead wählen – die klingt auf jedem Gerät gleich.
+- Meldet die Android-Stimme nicht, welches Wort sie gerade spricht, schätzt mRead die Wortmarkierung. Sie kann dann etwas vor- oder nachlaufen.
+
+„Teilen an mRead“ erscheint erst, wenn mRead installiert ist (Schritt 2) und einmal geöffnet wurde.
 
 ## Wortfilter erweitern
 
