@@ -156,11 +156,11 @@
   .pv-redo{background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--yellow-deep)}
   .pv-ok{background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--yellow-deep)}
   .pv-ok:disabled{opacity:.4;box-shadow:none}
-  .pv-no,.pv-mark{background:rgba(255,255,255,.14);color:#F1EFE6;font-weight:600}
+  .pv-no,.pv-mark,.pv-rot{background:rgba(255,255,255,.14);color:#F1EFE6;font-weight:600}
   .pv-mark .sw{width:14px;height:14px;border-radius:4px;border:2px solid var(--yellow);flex:none}
   .pv-mark[aria-pressed="true"] .sw{background:var(--yellow)}
   /* schmale Ansicht: Knöpfe nur mit Symbol */
-  @media (max-width:900px){ .pv-no .lbl,.pv-mark .lbl{display:none} .pv-no,.pv-mark{padding:0 11px} .pv-tip{font-size:15px} .pv-tip svg{display:none} }
+  @media (max-width:900px){ .pv-no .lbl,.pv-mark .lbl,.pv-rot .lbl{display:none} .pv-no,.pv-mark,.pv-rot{padding:0 11px} .pv-tip{font-size:15px} .pv-tip svg{display:none} }
   @media (max-width:560px){ .pv-btn .lbl{display:none} .pv-btn{padding:0 11px} }
   .photoview.selecting .pl{cursor:crosshair}
   .photoview.selecting{cursor:crosshair}
@@ -280,6 +280,7 @@
         <button id="pvOk" class="pv-btn pv-ok" type="button" hidden disabled aria-label="Lesen">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="lbl">Lesen</span>
         </button>
+        <button id="pvRot" class="pv-btn pv-rot" type="button" aria-label="Foto drehen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span class="lbl">Drehen</span></button>
         <button id="pvMark" class="pv-btn pv-mark" type="button" aria-pressed="true" aria-label="Markierung zeigen"><span class="sw"></span><span class="lbl">Markierung</span></button>
       </div>
       <button id="pvZoom" class="pv-zoom" type="button" aria-label="Ganzes Foto zeigen" hidden>
@@ -321,6 +322,7 @@
       <button id="cropCancel" class="round" type="button" aria-label="Abbrechen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
+      <button id="cropRot" class="round" type="button" aria-label="Foto drehen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     </div>
     <button id="cropGo" class="big-btn" type="button" aria-label="Diesen Bereich lesen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
@@ -396,7 +398,32 @@
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
   var pvMark = $("pvMark"), showMarks = true, pvZoom = $("pvZoom"), pvRedo = $("pvRedo");
   var selecting = false, selEl = null, selBusy = false, selRect = null;
-  var pvOk = $("pvOk"), pvNo = $("pvNo");
+  var pvOk = $("pvOk"), pvNo = $("pvNo"), pvRot = $("pvRot");
+
+  /* ---------- Foto drehen (im Uhrzeigersinn, je 90°) ---------- */
+  function rotatedCanvas(src){
+    var w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+    var c = document.createElement("canvas"); c.width = h; c.height = w;
+    var g = c.getContext("2d");
+    g.translate(h, 0); g.rotate(Math.PI / 2); g.drawImage(src, 0, 0, w, h);
+    return c;
+  }
+  pvRot.addEventListener("click", function(e){
+    e.stopPropagation();
+    if(selecting || selBusy || !photoData) return;
+    stopReading();
+    var img = new Image();
+    img.onload = function(){
+      photoData = rotatedCanvas(img).toDataURL("image/jpeg", 0.85);
+      if(srcCanvas) srcCanvas = rotatedCanvas(srcCanvas);
+      // Wortlagen mitdrehen: (x, y) → (1 − y, x)
+      boxes = boxes.map(function(bp){ return bp.map(function(bs){ return (bs || []).map(function(b){
+        return [1 - b[3], b[0], 1 - b[1], b[2]];
+      }); }); });
+      save(); render();
+    };
+    img.src = photoData;
+  });
   var zoom = { s: 1, tx: 0, ty: 0 }, base = null;   // base: Lage des Fotos ohne Zoom
   var photoView = $("photoView"), pvInner = $("pvInner"), pvImg = $("pvImg"), pvTip = $("pvTip");
   var viewToggle = $("viewToggle"), viewPhotoBtn = $("viewPhoto"), viewTextBtn = $("viewText");
@@ -806,7 +833,7 @@
     pvRedo.setAttribute("aria-pressed", String(on));
     photoView.classList.toggle("selecting", on);
     tipText.textContent = on ? "Zieh einen Rahmen um den Text, der neu gelesen werden soll." : TIP_NORMAL;
-    pvRedo.hidden = on; pvMark.hidden = on;
+    pvRedo.hidden = on; pvMark.hidden = on; pvRot.hidden = on;
     pvOk.hidden = pvNo.hidden = !on;
     pvOk.disabled = true; selRect = null;
     if(!on && selEl && !selBusy){ selEl.remove(); selEl = null; }
@@ -1438,6 +1465,15 @@
   modeQuad.addEventListener("click", function(){ setCropMode("quad"); });
 
   cropCancel.addEventListener("click", function(){ endCrop(false); render(); });
+  $("cropRot").addEventListener("click", function(){
+    if(!cropState) return;
+    var old = cropState;
+    rotatedCanvas(old.img).toBlob(function(blob){
+      if(!blob) return;
+      URL.revokeObjectURL(old.url);
+      loadImage(blob).then(startCrop);
+    }, "image/jpeg", 0.92);
+  });
   cropAll.addEventListener("click", function(){ if(cropState){ cropState.q = rectQuad(0, 0, 1, 1); drawQuad(); } });
   cropGo.addEventListener("click", function(){
     if(!cropState) return;
