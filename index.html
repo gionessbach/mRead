@@ -11,10 +11,12 @@
 <title>mRead</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
 <style>
+  /* Schrift Andika liegt im Ordner vendor/andika – so funktioniert mRead auch ohne Internet */
+  @font-face{font-family:"Andika";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/andika/andika-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+  @font-face{font-family:"Andika";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/andika/andika-latin-ext-400-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+  @font-face{font-family:"Andika";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/andika/andika-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+  @font-face{font-family:"Andika";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/andika/andika-latin-ext-700-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
   /* Layout: ein Bildschirm – oben Name und Anzeige-Optionen, in der Mitte das Lesepult, unten Foto · Vorlesen · Tempo */
   :root{
     --bg:#F5F4EF;          /* Hintergrund, leicht warmes Grau */
@@ -105,7 +107,7 @@
   .progress i{display:block;height:100%;width:0;background:var(--yellow);border-radius:999px;transition:width .3s}
 
   .msg{
-    position:absolute;left:50%;bottom:16px;transform:translateX(-50%);max-width:calc(100% - 32px);z-index:3;
+    position:absolute;left:50%;bottom:16px;transform:translateX(-50%);max-width:calc(100% - 32px);z-index:6;
     background:var(--ink);color:#fff;font-size:17px;line-height:1.4;padding:12px 18px;border-radius:14px;text-align:center;
   }
 
@@ -123,6 +125,9 @@
   .big-btn.playing{background:var(--ink);color:var(--yellow);box-shadow:0 6px 0 #000}
   .speed{width:auto;padding:0 18px 0 14px;gap:8px;border-radius:999px;font-family:var(--font-kid);font-weight:700;font-size:20px}
   .speed svg{width:34px;height:34px}
+  .speed{white-space:nowrap}
+  /* schmale Ansicht (iPad hochkant): Tempo und Satz für Satz nur als Symbol */
+  @media (max-width:900px){ #mainControls .speed .lbl{display:none} #mainControls .speed{width:64px;padding:0;justify-content:center} }
 
   /* Foto groß ansehen */
   .viewer{
@@ -156,11 +161,11 @@
   .pv-redo{background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--yellow-deep)}
   .pv-ok{background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--yellow-deep)}
   .pv-ok:disabled{opacity:.4;box-shadow:none}
-  .pv-no,.pv-mark,.pv-rot{background:rgba(255,255,255,.14);color:#F1EFE6;font-weight:600}
+  .pv-no,.pv-mark,.pv-rot,.pv-order{background:rgba(255,255,255,.14);color:#F1EFE6;font-weight:600}
   .pv-mark .sw{width:14px;height:14px;border-radius:4px;border:2px solid var(--yellow);flex:none}
   .pv-mark[aria-pressed="true"] .sw{background:var(--yellow)}
   /* schmale Ansicht: Knöpfe nur mit Symbol */
-  @media (max-width:900px){ .pv-no .lbl,.pv-mark .lbl,.pv-rot .lbl{display:none} .pv-no,.pv-mark,.pv-rot{padding:0 11px} .pv-tip{font-size:15px} .pv-tip svg{display:none} }
+  @media (max-width:900px){ .pv-no .lbl,.pv-mark .lbl,.pv-rot .lbl,.pv-order .lbl{display:none} .pv-no,.pv-mark,.pv-rot,.pv-order{padding:0 11px} .pv-tip{font-size:15px} .pv-tip svg{display:none} }
   @media (max-width:560px){ .pv-btn .lbl{display:none} .pv-btn{padding:0 11px} }
   .photoview.selecting .pl{cursor:crosshair}
   .photoview.selecting{cursor:crosshair}
@@ -169,6 +174,16 @@
   .sel.reading{animation:selpulse 1s ease-in-out infinite alternate}
   @keyframes selpulse{from{background:rgba(253,208,2,.08)}to{background:rgba(253,208,2,.35)}}
   @media (prefers-reduced-motion:reduce){ .sel.reading{animation:none} }
+  /* Reihenfolge festlegen: Nummern neben den Texten */
+  .photoview.ordering .pl{background:rgba(255,255,255,.18);mix-blend-mode:normal;outline:2px dashed rgba(253,208,2,.9);outline-offset:1px}
+  .photoview.ordering .pl.ordered{background:rgba(253,208,2,.42);mix-blend-mode:multiply;outline:none}
+  .ord{position:absolute;z-index:1;width:30px;height:30px;margin:-15px 0 0 -34px;border-radius:50%;pointer-events:none;
+       background:var(--ink);color:var(--yellow);font:700 17px/30px var(--font-ui);text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+  .ord.inside{margin-left:2px}
+  /* lange drücken: Ring wächst, bis neu gelesen wird */
+  .lp{position:absolute;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;border:4px solid var(--yellow);
+      pointer-events:none;z-index:4;animation:lpgrow .55s linear forwards;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+  @keyframes lpgrow{from{transform:scale(.25);opacity:.4}to{transform:scale(1);opacity:1}}
   .pv-zoom{
     position:absolute;right:12px;bottom:12px;width:52px;height:52px;border-radius:50%;border:0;cursor:pointer;z-index:2;
     background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.35);
@@ -189,7 +204,7 @@
   .viewtoggle svg{width:26px;height:26px}
 
   /* Bereich auf dem Foto wählen */
-  .crop{position:absolute;inset:0;background:#1E1E19;z-index:2;touch-action:none}
+  .crop{position:absolute;inset:0;background:#1E1E19;z-index:4;touch-action:none}
   .crop-tip{
     position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:3;max-width:calc(100% - 32px);
     background:var(--yellow);color:var(--ink);font-family:var(--font-kid);font-weight:700;font-size:19px;
@@ -238,6 +253,9 @@
   .voice .tag{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--yellow);border-radius:999px;padding:3px 8px}
   .voice svg{width:22px;height:22px;flex:none}
 
+  .voice .prog{font-size:13px;color:var(--muted);font-weight:600}
+  .voice .tag.ki{background:var(--ink);color:var(--yellow)}
+  .panel h3{margin:6px 0 0;font-size:15px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
   @media (prefers-reduced-motion:reduce){ .busy .photo::after{animation:none;top:39%} }
   @media (max-width:560px){ .brand span{display:none} .toggle button{min-width:64px} }
 </style>
@@ -286,6 +304,7 @@
         <button id="pvOk" class="pv-btn pv-ok" type="button" hidden disabled aria-label="Lesen">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="lbl">Lesen</span>
         </button>
+        <button id="pvOrder" class="pv-btn pv-order" type="button" aria-label="Reihenfolge festlegen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 5l1.5-1v4.5M3.6 14.3c.3-.8 2.6-1 2.6.4 0 1-2.6 2.1-2.6 3.3h2.8" stroke-width="1.6"/></svg><span class="lbl">Reihenfolge</span></button>
         <button id="pvRot" class="pv-btn pv-rot" type="button" aria-label="Foto drehen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span class="lbl">Drehen</span></button>
         <button id="pvMark" class="pv-btn pv-mark" type="button" aria-pressed="true" aria-label="Markierung zeigen"><span class="sw"></span><span class="lbl">Markierung</span></button>
       </div>
@@ -363,6 +382,7 @@
     </div>
     <button id="mainBtn" class="big-btn" type="button" aria-label="Foto machen"></button>
     <div class="right">
+      <button id="stepBtn" class="round speed" type="button" aria-label="Satz für Satz umschalten"></button>
       <button id="speedBtn" class="round speed" type="button" aria-label="Tempo umschalten"></button>
     </div>
   </div>
@@ -375,7 +395,12 @@
       <button id="closeBtn" class="x" type="button" aria-label="Schließen">✕</button>
     </div>
     <p class="panel-hint">Tippe auf eine Stimme, um sie zu hören und auszuwählen.</p>
+    <h3>KI-Stimmen</h3>
+    <p class="panel-hint">Klingen natürlich und funktionieren ohne Internet. Beim ersten Antippen wird die Stimme einmalig geladen (ca. 90 MB, am besten im WLAN).</p>
+    <div class="voices" id="kiVoices" role="radiogroup" aria-label="KI-Stimmen"></div>
+    <h3>Stimmen des iPads</h3>
     <div class="voices" id="voices" role="radiogroup" aria-label="Deutsche Stimmen"></div>
+    <label class="opt" for="optThorough"><span>Gründlich suchen<small>Findet auch kleine, verstreute Texte, z. B. Beschriftungen in Bildern. Das Lesen dauert dafür länger.</small></span><input id="optThorough" class="switch" type="checkbox"></label>
     <label class="opt" for="optKids"><span>Kinderbuch-Schriften<small>Erkennung für Schreibschrift, Handschrift-, Comic- und Schulschriften</small></span><input id="optKids" class="switch" type="checkbox"></label>
     <p class="panel-hint">Schönere Stimmen lassen sich auf dem iPad laden: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch. Stimmen mit „Erweitert“ oder „Premium“ klingen am natürlichsten. Danach mRead neu öffnen.</p>
   </div>
@@ -391,7 +416,7 @@
 <input id="camInput" class="file" type="file" accept="image/*" capture="environment">
 <input id="galleryInput" class="file" type="file" accept="image/*">
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="vendor/tesseract/tesseract.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -405,7 +430,8 @@
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
   var pvMark = $("pvMark"), showMarks = true, pvZoom = $("pvZoom"), pvRedo = $("pvRedo");
   var selecting = false, selEl = null, selBusy = false, selRect = null;
-  var pvOk = $("pvOk"), pvNo = $("pvNo"), pvRot = $("pvRot");
+  var pvOk = $("pvOk"), pvNo = $("pvNo"), pvRot = $("pvRot"), pvOrder = $("pvOrder"), stepBtn = $("stepBtn");
+  var ordering = false, orderList = [], ordEls = [];
 
   /* ---------- Foto drehen (im Uhrzeigersinn, je 90°) ---------- */
   function rotatedCanvas(src){
@@ -441,6 +467,9 @@
 
   var ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>';
   var ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></svg>';
+  var ICON_NEXT = '<svg viewBox="0 0 24 24"><path d="M5 5.6v12.8a1 1 0 0 0 1.5.86l9.6-6.4a1 1 0 0 0 0-1.72L6.5 4.74A1 1 0 0 0 5 5.6z" fill="currentColor"/><rect x="17.5" y="5" width="3" height="14" rx="1.2" fill="currentColor"/></svg>';
+  var ICON_ALL = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 10h20M6 16h20M6 22h14"/></svg>';
+  var ICON_STEP = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="12" width="18" height="8" rx="3" fill="#FDD002"/><path d="M8 16h10M26 11v10"/></svg>';
   var ICON_STOP = '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
   var ICON_SLOW = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-6 4.5-10 10-10s10 4 10 10z" fill="#FDD002"/><path d="M9 21l-1 4M21 21l1 4M25 19c2 0 3.5-1.5 3.5-3.5S27 13 25.5 13"/><path d="M11 15.5l4 3 4-3"/></svg>';
   var ICON_FAST = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 22c0-5 3-8 8-8 4 0 7 3 7 6 0 2-1.5 3-3.5 3H11z" fill="#FDD002"/><path d="M22 15c0-4 1-9 3-9s1.5 5 0 9M19 14.5c-1-4-.5-8.5 1-8.5"/><circle cx="23" cy="18" r=".8" fill="currentColor"/><path d="M10 22c-2 0-4-1-4-3"/></svg>';
@@ -456,10 +485,12 @@
   var photoData = null;     // das gelesene Foto (Ausschnitt) als Bild
   var view = "text";        // "photo" = Foto-Ansicht, "text" = Fließtext
   var voiceURI = null;
-  var kidsModel = true;     // nachtrainiertes Modell für Kinderbuch-Schriften      // gewählte Stimme (leer = automatisch die beste)
+  var kidsModel = true;     // nachtrainiertes Modell für Kinderbuch-Schriften
+  var stepMode = false;     // Satz für Satz: nach jedem Satz anhalten, weiter mit dem großen Knopf
+  var thorough = false;     // Gründlich suchen: zusätzliche Durchgänge für kleine, verstreute Texte
 
   function save(){
-    var d = {paras:paras, boxes:boxes, photoData:photoData, view:view, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI, cropMode:cropMode, kidsModel:kidsModel};
+    var d = {paras:paras, boxes:boxes, photoData:photoData, view:view, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI, cropMode:cropMode, kidsModel:kidsModel, stepMode:stepMode, thorough:thorough};
     try{ localStorage.setItem("mread", JSON.stringify(d)); }
     catch(e){
       // Foto zu groß für den Speicher: dann ohne Foto speichern
@@ -478,6 +509,7 @@
       upper = !!d.upper; slow = !!d.slow;
       if(d.cropMode === "quad") cropMode = "quad";
       if(d.kidsModel === false) kidsModel = false;
+      stepMode = !!d.stepMode; thorough = !!d.thorough;
       if(typeof d.voiceURI === "string") voiceURI = d.voiceURI;
       if(d.sizeIdx >= 0 && d.sizeIdx < sizes.length) sizeIdx = d.sizeIdx;
     }catch(e){}
@@ -861,6 +893,8 @@
       drawSel(n.x, n.y, n.x, n.y);
     }
     else if(ids.length === 1){ moved = 0; gesture = { pan: true, start: ptrs[ids[0]], tx: zoom.tx, ty: zoom.ty }; }
+    if(ids.length === 1 && !selecting && !ordering && !selBusy && base && photoData) startLongPress(ptrs[ids[0]]);
+    else cancelLongPress();
     if(ids.length === 2){
       var a = ptrs[ids[0]], b = ptrs[ids[1]];
       gesture = { pinch: true, d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: zoom.s, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, tx: zoom.tx, ty: zoom.ty };
@@ -886,10 +920,12 @@
     }else if(gesture.pan){
       var p = ptrs[e.pointerId], dx = p.x - gesture.start.x, dy = p.y - gesture.start.y;
       moved = Math.max(moved, Math.hypot(dx, dy));
+      if(moved > 10) cancelLongPress();
       if(zoom.s > 1) setZoom(zoom.s, gesture.tx + dx, gesture.ty + dy);
     }
   });
   function ptrUp(e){
+    cancelLongPress();
     if(gesture && gesture.select && gesture.bx != null){
       var r = { x0: Math.max(0, Math.min(gesture.ax, gesture.bx)), y0: Math.max(0, Math.min(gesture.ay, gesture.by)),
                 x1: Math.min(1, Math.max(gesture.ax, gesture.bx)), y1: Math.min(1, Math.max(gesture.ay, gesture.by)) };
@@ -905,6 +941,7 @@
     else if(!ids.length) gesture = null;
   }
   photoView.addEventListener("pointerup", ptrUp);
+  photoView.addEventListener("contextmenu", function(e){ e.preventDefault(); });
   photoView.addEventListener("pointercancel", ptrUp);
   // Mausrad / Trackpad (am Computer)
   photoView.addEventListener("wheel", function(e){
@@ -938,18 +975,95 @@
     pvOk.disabled = true; selRect = null;
     if(!on && selEl && !selBusy){ selEl.remove(); selEl = null; }
   }
-  pvOk.addEventListener("click", function(e){ e.stopPropagation(); if(selRect && !selBusy){ pvOk.disabled = true; pvNo.disabled = true; rereadRegion(selRect); } });
-  pvNo.addEventListener("click", function(e){ e.stopPropagation(); if(!selBusy) setSelecting(false); });
+  pvOk.addEventListener("click", function(e){ e.stopPropagation(); if(ordering){ finishOrder(); return; } if(selRect && !selBusy){ pvOk.disabled = true; pvNo.disabled = true; rereadRegion(selRect); } });
+  pvNo.addEventListener("click", function(e){ e.stopPropagation(); if(ordering){ setOrdering(false); return; } if(!selBusy) setSelecting(false); });
+
+  /* ---------- Reihenfolge festlegen: Texte nacheinander antippen ---------- */
+  function setOrdering(on){
+    ordering = on;
+    photoView.classList.toggle("ordering", on);
+    pvRedo.hidden = pvMark.hidden = pvRot.hidden = pvOrder.hidden = on;
+    pvOk.hidden = pvNo.hidden = !on;
+    pvOk.querySelector(".lbl").textContent = on ? "Fertig" : "Lesen";
+    pvOk.setAttribute("aria-label", on ? "Fertig" : "Lesen");
+    tipText.textContent = on ? "Tippe die Texte nacheinander an – so, wie ich sie vorlesen soll." : TIP_NORMAL;
+    orderList = [];
+    drawOrder();
+  }
+  function drawOrder(){
+    ordEls.forEach(function(n){ n.remove(); }); ordEls = [];
+    pvInner.querySelectorAll(".pl.ordered").forEach(function(n){ n.classList.remove("ordered"); });
+    orderList.forEach(function(pIdx, n){
+      (paraEls[pIdx] || []).forEach(function(el){ el.classList.add("ordered"); });
+      var first = boxes[pIdx] && boxes[pIdx][0] && boxes[pIdx][0][0];
+      if(!first) return;
+      var d = document.createElement("div");
+      d.className = "ord" + (first[0] < 0.05 ? " inside" : "");
+      d.textContent = n + 1;
+      d.style.left = (first[0] * 100) + "%"; d.style.top = ((first[1] + first[3]) / 2 * 100) + "%";
+      pvInner.appendChild(d); ordEls.push(d);
+    });
+    if(ordering) pvOk.disabled = !orderList.length;
+  }
+  function finishOrder(){
+    var order = orderList.concat(paras.map(function(x, i){ return i; }).filter(function(i){ return orderList.indexOf(i) < 0; }));
+    var n = orderList.length;
+    paras = order.map(function(i){ return paras[i]; });
+    boxes = order.map(function(i){ return boxes[i]; });
+    resumeFrom = 0;
+    setOrdering(false);
+    save(); render();
+    toast(n < order.length ? "Gemerkt! Erst die " + n + " angetippten Texte, danach der Rest." : "Gemerkt! So lese ich die Texte jetzt vor.", 3500);
+  }
+  pvOrder.addEventListener("click", function(e){
+    e.stopPropagation();
+    if(selBusy || selecting) return;
+    stopReading();
+    setOrdering(true);
+  });
+
+  /* ---------- Lange drücken: Stelle rund um den Finger genauer lesen und Neues ergänzen ---------- */
+  var lpTimer = null, lpEl = null;
+  function startLongPress(pt){
+    cancelLongPress();
+    lpEl = document.createElement("div"); lpEl.className = "lp";
+    lpEl.style.left = pt.x + "px"; lpEl.style.top = pt.y + "px";
+    photoView.appendChild(lpEl);
+    lpTimer = setTimeout(function(){
+      lpTimer = null;
+      if(lpEl){ lpEl.remove(); lpEl = null; }
+      moved = 99;               // der folgende Klick zählt nicht als Tippen
+      gesture = null;
+      longPress(pt);
+    }, 600);
+  }
+  function cancelLongPress(){
+    if(lpTimer){ clearTimeout(lpTimer); lpTimer = null; }
+    if(lpEl){ lpEl.remove(); lpEl = null; }
+  }
+  function longPress(pt){
+    if(selBusy || !photoData) return;
+    stopReading();
+    var n = toPhoto(pt), iw = pvImg.naturalWidth || 1, ih = pvImg.naturalHeight || 1, M = Math.max(iw, ih);
+    var hw = 0.17 * M / iw, hh = 0.075 * M / ih;
+    var r = { x0: Math.max(0, n.x - hw), y0: Math.max(0, n.y - hh), x1: Math.min(1, n.x + hw), y1: Math.min(1, n.y + hh) };
+    if(!selEl){ selEl = document.createElement("div"); selEl.className = "sel"; pvInner.appendChild(selEl); }
+    drawSel(r.x0, r.y0, r.x1, r.y1);
+    rereadRegion(r, { addOnly: true, at: n });
+  }
   pvRedo.addEventListener("click", function(e){
     e.stopPropagation();
     if(selBusy) return;
     stopReading();
     setSelecting(!selecting);
   });
-  function rereadRegion(r){
+  // r: Bereich in Anteilen. opts.addOnly: vorhandene Wörter behalten und nur Neues ergänzen (langes Drücken);
+  // opts.at: Punkt des Fingers – findet sich nichts Neues, wird der Text an dieser Stelle vorgelesen
+  function rereadRegion(r, opts){
+    opts = opts || {};
     selBusy = true;
     selEl.classList.add("reading");
-    tipText.textContent = "Ich lese diesen Bereich neu …";
+    tipText.textContent = opts.addOnly ? "Ich schaue mir diese Stelle genauer an …" : "Ich lese diesen Bereich neu …";
     // Ausschnitt aus dem Foto in voller Auflösung (nach dem Neuladen: aus dem gespeicherten Foto)
     var src = srcCanvas || pvImg;
     var sw = src.width || src.naturalWidth, sh = src.height || src.naturalHeight;
@@ -968,33 +1082,73 @@
       setSelecting(false);
       if(msg) toast(msg, 4000);
     }
+    // Text, der an dieser Stelle schon erkannt war, vorlesen
+    function readAt(){
+      if(!opts.at) return false;
+      var best = -1, bd = Infinity;
+      boxes.forEach(function(bp, i){
+        var q = paraRect(bp); if(!q) return;
+        var dx = Math.max(q[0] - opts.at.x, 0, opts.at.x - q[2]), dy = Math.max(q[1] - opts.at.y, 0, opts.at.y - q[3]);
+        var d = Math.hypot(dx, dy);
+        if(d < bd){ bd = d; best = i; }
+      });
+      if(best < 0 || bd > 0.03 || !paraSent[best]) return false;
+      readFrom(paraSent[best][0], paraSent[best][1]);
+      return true;
+    }
     ocr(p, true).then(function(data){
       var found = toParas(data, c.width, c.height);
-      if(!found.paras.length){ done("Ich habe in diesem Bereich keinen Text gefunden."); return; }
       // Rahmen der neuen Wörter auf das ganze Foto umrechnen
       var nb = found.boxes.map(function(bp){ return bp.map(function(bs){ return bs.map(function(b){
         return [R.x0 + b[0] * (R.x1 - R.x0), R.y0 + b[1] * (R.y1 - R.y0), R.x0 + b[2] * (R.x1 - R.x0), R.y0 + b[3] * (R.y1 - R.y0)];
       }); }); });
-      // alte Wörter in diesem Bereich entfernen
-      var inside = function(bs){
-        var x = 0, y = 0; bs.forEach(function(b){ x += (b[0] + b[2]) / 2; y += (b[1] + b[3]) / 2; });
-        x /= bs.length; y /= bs.length;
-        return x >= R.x0 && x <= R.x1 && y >= R.y0 && y <= R.y1;
-      };
-      var P = [], B = [];
-      paras.forEach(function(ws, i){
-        var w2 = [], b2 = [];
-        ws.forEach(function(w, j){ var bs = boxes[i][j] || []; if(!bs.length || !inside(bs)){ w2.push(w); b2.push(bs); } });
-        if(w2.length){ P.push(w2); B.push(b2); }
-      });
+      var P = [], B = [], NP = found.paras, NB = nb;
+      if(opts.addOnly){
+        // nur Wörter übernehmen, die an einer Stelle stehen, wo bisher nichts erkannt war
+        var have = [];
+        boxes.forEach(function(bp){ bp.forEach(function(bs){ (bs || []).forEach(function(b){ have.push(b); }); }); });
+        var clash = function(b){
+          var a = (b[2] - b[0]) * (b[3] - b[1]);
+          return have.some(function(h){
+            var ix = Math.min(b[2], h[2]) - Math.max(b[0], h[0]), iy = Math.min(b[3], h[3]) - Math.max(b[1], h[1]);
+            return ix > 0 && iy > 0 && ix * iy > 0.3 * Math.min(a, (h[2] - h[0]) * (h[3] - h[1]));
+          });
+        };
+        NP = []; NB = [];
+        found.paras.forEach(function(ws, i){
+          var w2 = [], b2 = [];
+          ws.forEach(function(w, j){ if(!nb[i][j].some(clash)){ w2.push(w); b2.push(nb[i][j]); } });
+          // einzelne kurze Wortreste (z. B. aus Bildern) nicht übernehmen
+          if(w2.join("").replace(/[^A-Za-zÄÖÜäöüß]/g, "").length >= 3){ NP.push(w2); NB.push(b2); }
+        });
+        P = paras.slice(); B = boxes.slice();
+      }else{
+        // alte Wörter in diesem Bereich entfernen
+        var inside = function(bs){
+          var x = 0, y = 0; bs.forEach(function(b){ x += (b[0] + b[2]) / 2; y += (b[1] + b[3]) / 2; });
+          x /= bs.length; y /= bs.length;
+          return x >= R.x0 && x <= R.x1 && y >= R.y0 && y <= R.y1;
+        };
+        paras.forEach(function(ws, i){
+          var w2 = [], b2 = [];
+          ws.forEach(function(w, j){ var bs = boxes[i][j] || []; if(!bs.length || !inside(bs)){ w2.push(w); b2.push(bs); } });
+          if(w2.length){ P.push(w2); B.push(b2); }
+        });
+      }
+      if(!NP.length){
+        if(opts.addOnly){ done(); if(!readAt()) toast("Hier habe ich keinen weiteren Text gefunden.", 3500); }
+        else done("Ich habe in diesem Bereich keinen Text gefunden.");
+        return;
+      }
       // neue Bausteine dazu und alles in Lesereihenfolge bringen
       var newBoxes = [];
-      found.paras.forEach(function(ws, i){ P.push(ws); B.push(nb[i]); nb[i].forEach(function(bs){ newBoxes.push(bs); }); });
+      NP.forEach(function(ws, i){ P.push(ws); B.push(NB[i]); NB[i].forEach(function(bs){ newBoxes.push(bs); }); });
       var ar = arrange(P, B);
       paras = ar.paras; boxes = ar.boxes; resumeFrom = 0;
       var fresh = [];
       boxes.forEach(function(bp, i){ if(bp.some(function(bs){ return newBoxes.indexOf(bs) >= 0; })) fresh.push(i); });
       save(); done(); render();
+      if(opts.addOnly) toast("Neu gefunden: " + NP.map(function(ws){ return ws.join(" "); }).join(" · ").slice(0, 120), 3500);
       // das neu Erkannte gleich vorlesen
       var list = [];
       fresh.forEach(function(pi){ for(var si = paraSent[pi][0]; si < paraSent[pi][1]; si++) list.push(si); });
@@ -1107,10 +1261,13 @@
     var has = tokens.length > 0;
     if(!has){ mainBtn.innerHTML = ICON_CAM; mainBtn.setAttribute("aria-label", "Foto machen"); }
     else if(playing){ mainBtn.innerHTML = ICON_STOP; mainBtn.setAttribute("aria-label", "Vorlesen stoppen"); }
+    else if(stepPaused){ mainBtn.innerHTML = ICON_NEXT; mainBtn.setAttribute("aria-label", "Nächster Satz"); }
     else{ mainBtn.innerHTML = ICON_PLAY; mainBtn.setAttribute("aria-label", "Vorlesen"); }
     mainBtn.classList.toggle("playing", playing);
-    speedBtn.innerHTML = (slow ? ICON_SLOW : ICON_FAST) + (slow ? "Langsam" : "Normal");
+    speedBtn.innerHTML = (slow ? ICON_SLOW : ICON_FAST) + '<span class="lbl">' + (slow ? "Langsam" : "Normal") + "</span>";
     speedBtn.setAttribute("aria-label", slow ? "Tempo: langsam" : "Tempo: normal");
+    stepBtn.innerHTML = (stepMode ? ICON_STEP : ICON_ALL) + '<span class="lbl">' + (stepMode ? "Satzweise" : "Am Stück") + "</span>";
+    stepBtn.setAttribute("aria-label", stepMode ? "Satz für Satz: an" : "Satz für Satz: aus, alles am Stück");
     modeNormal.setAttribute("aria-pressed", String(!upper));
     modeUpper.setAttribute("aria-pressed", String(upper));
   }
@@ -1195,14 +1352,171 @@
     return u;
   }
 
-  function stopReading(){
+  /* ---------- KI-Stimmen (Piper): laufen ganz im Browser, auch ohne Internet ----------
+     Text → Lautschrift (espeak, vendor/piper) → Sprachmodell (voices/*.onnx, onnxruntime in vendor/ort) → Ton */
+  var KI = { kerstin: "Kerstin", ramona: "Ramona", thorsten: "Thorsten" };
+  var KI_INFO = { kerstin: "Frauenstimme", ramona: "Frauenstimme", thorsten: "Männerstimme" };
+  function kiName(){ var n = voiceURI && voiceURI.indexOf("piper:") === 0 ? voiceURI.slice(6) : null; return n && KI[n] ? n : null; }
+  var piper = { name: null, sess: null, cfg: null, loading: null, loadingName: null, modReady: null, onLine: null, chain: Promise.resolve(), ctx: null };
+  function loadScript(src){
+    return new Promise(function(res, rej){
+      var s = document.createElement("script"); s.src = src; s.onload = res;
+      s.onerror = function(){ s.remove(); rej(new Error(src)); };
+      document.head.appendChild(s);
+    });
+  }
+  // Datei laden und dabei den Fortschritt melden (0…1)
+  function fetchProgress(url, onProg){
+    return fetch(url).then(function(r){
+      if(!r.ok) throw new Error(url);
+      var total = +r.headers.get("Content-Length") || 0;
+      if(!onProg || !r.body || !r.body.getReader) return r.arrayBuffer();
+      var rd = r.body.getReader(), chunks = [], got = 0;
+      function pump(){
+        return rd.read().then(function(x){
+          if(x.done) return;
+          chunks.push(x.value); got += x.value.length;
+          onProg(total ? Math.min(1, got / total) : 0);
+          return pump();
+        });
+      }
+      return pump().then(function(){
+        var out = new Uint8Array(got), o = 0;
+        chunks.forEach(function(c){ out.set(c, o); o += c.length; });
+        return out.buffer;
+      });
+    });
+  }
+  function phonemeModule(){
+    if(!piper.modReady){
+      piper.modReady = (typeof createPiperPhonemize === "undefined" ? loadScript("vendor/piper/piper_phonemize.js") : Promise.resolve()).then(function(){
+        return createPiperPhonemize({
+          print: function(l){ if(piper.onLine) piper.onLine(l); }, printErr: function(){},
+          locateFile: function(f){ return "vendor/piper/" + f; }
+        });
+      }).catch(function(e){ piper.modReady = null; throw e; });
+    }
+    return piper.modReady;
+  }
+  // Lautschrift → Zahlen nach der Tabelle der Stimme (ältere Stimmen kennen weniger Zeichen als espeak liefert)
+  function toIds(ph){
+    var map = piper.cfg.phoneme_id_map, ids = map["^"].concat(map["_"]);
+    Array.from(ph.join("").normalize("NFC")).forEach(function(c){
+      if(map[c]) ids = ids.concat(map[c], map["_"]);
+    });
+    return ids.concat(map["$"]);
+  }
+  // mehrere Texte auf einmal in Lautschrift (Zahlenfolgen für das Sprachmodell) umwandeln
+  function phonemize(texts){
+    return phonemeModule().then(function(m){
+      var out = [];
+      piper.onLine = function(l){ try{ out.push(toIds(JSON.parse(l).phonemes || [])); }catch(e){} };
+      try{
+        m.callMain(["-l", (piper.cfg && piper.cfg.espeak.voice) || "de", "--input",
+          JSON.stringify(texts.map(function(t){ return { text: t }; })), "--espeak_data", "/espeak-ng-data"]);
+      }finally{ piper.onLine = null; }
+      while(out.length < texts.length) out.push([]);
+      return out;
+    });
+  }
+  function piperLoad(name, onProg){
+    if(piper.name === name && piper.sess) return Promise.resolve();
+    if(piper.loading && piper.loadingName === name){ if(onProg) piper.onProg = onProg; return piper.loading; }
+    piper.loadingName = name; piper.onProg = onProg;
+    var cfg;
+    piper.loading = (typeof ort === "undefined" ? loadScript("vendor/ort/ort.wasm.min.js") : Promise.resolve()).then(function(){
+      ort.env.wasm.numThreads = 1;
+      ort.env.wasm.wasmPaths = new URL("vendor/ort/", location.href).href;
+      return fetch("voices/" + name + ".json");
+    }).then(function(r){ if(!r.ok) throw new Error("json"); return r.json(); }).then(function(c){
+      cfg = c;
+      return Promise.all([fetchProgress("voices/" + name + ".onnx", function(f){ if(piper.onProg) piper.onProg(f); }), phonemeModule()]);
+    }).then(function(r){
+      return ort.InferenceSession.create(r[0]);
+    }).then(function(sess){
+      if(piper.sess && piper.sess.release) try{ piper.sess.release(); }catch(e){}
+      piper.sess = sess; piper.cfg = cfg; piper.name = name;
+    });
+    var p = piper.loading;
+    p.then(function(){ if(piper.loading === p) piper.loading = null; }, function(){ if(piper.loading === p) piper.loading = null; });
+    return p;
+  }
+  function piperSpeed(){ return slow ? 1.6 : 1.12; }    // Sprechdauer: größer = langsamer
+  function piperSynth(ids){
+    var speed = piperSpeed();
+    var job = piper.chain.then(function(){
+      var c = piper.cfg.inference;
+      return piper.sess.run({
+        input: new ort.Tensor("int64", BigInt64Array.from(ids.map(function(v){ return BigInt(v); })), [1, ids.length]),
+        input_lengths: new ort.Tensor("int64", BigInt64Array.from([BigInt(ids.length)]), [1]),
+        scales: new ort.Tensor("float32", Float32Array.from([c.noise_scale, c.length_scale * speed, c.noise_w]), [3])
+      });
+    }).then(function(r){ return r.output.data; });
+    piper.chain = job.catch(function(){});
+    return job;
+  }
+  // muss beim Antippen aufgerufen werden, sonst bleibt der Ton auf dem iPad stumm
+  function audioCtx(){
+    if(!piper.ctx){
+      var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null;
+      piper.ctx = new AC();
+      // iPad: ein kurzer stiller Ton beim ersten Antippen schaltet die Tonausgabe frei
+      try{ var sb = piper.ctx.createBufferSource(); sb.buffer = piper.ctx.createBuffer(1, 1, 22050); sb.connect(piper.ctx.destination); sb.start(0); }catch(e){}
+    }
+    if(piper.ctx.state === "suspended") piper.ctx.resume();
+    return piper.ctx;
+  }
+  function playPcm(pcm, r){
+    return new Promise(function(res){
+      var ctx = audioCtx();
+      if(!ctx || r.cancel){ res(); return; }
+      var buf = ctx.createBuffer(1, pcm.length, piper.cfg.audio.sample_rate);
+      buf.getChannelData(0).set(pcm);
+      var src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination);
+      src.onended = function(){ r.src = null; res(); };
+      r.src = src; src.start();
+    });
+  }
+  function wait(ms, r){ return new Promise(function(res){ r.timers.push(setTimeout(res, ms)); }); }
+
+  /* ---------- Vorlesen (iPad-Stimme oder KI-Stimme) ---------- */
+  var run = null;            // aktueller Vorlese-Durchgang { cancel, timers, src }
+  var stepPaused = false;    // Satz für Satz: wartet auf „Weiter“
+  // laufendes Vorlesen abbrechen, ohne den Zustand zurückzusetzen
+  function halt(){
     if("speechSynthesis" in window) speechSynthesis.cancel();
-    playing = false;
+    if(run){
+      run.cancel = true;
+      run.timers.forEach(clearTimeout);
+      if(run.src){ try{ run.src.onended = null; run.src.stop(); }catch(e){} }
+      run = null;
+    }
+  }
+  function stopReading(){
+    halt();
+    playing = false; stepPaused = false;
     mark(null, null);
     updateButtons();
   }
+  function sentenceItems(list){
+    return list.map(function(sIdx){
+      var idx = (sentences[sIdx] || []).filter(function(t){ return speakable(tokens[t].text); });
+      return { s: sIdx, idx: idx, words: idx.map(function(t){ return speechText(tokens[t].text); }) };
+    }).filter(function(it){ return it.idx.length; });
+  }
+  function readingDone(lastS, whole){
+    run = null; playing = false;
+    if(stepMode && lastS != null && lastS + 1 < sentences.length){
+      resumeFrom = lastS + 1; stepPaused = true;
+      mark(lastS, null);                 // der gelesene Satz bleibt hell markiert
+    }else{
+      if(whole || stepMode) resumeFrom = 0;
+      stepPaused = false;
+      mark(null, null);
+    }
+    updateButtons();
+  }
 
-  // Liest ab Satz "from" alle Sätze vor; das aktuelle Wort wird markiert.
   // liest die Sätze von "from" bis vor "to" (ohne "to": bis zum Ende)
   function readFrom(from, to){
     if(from >= sentences.length) from = 0;
@@ -1211,59 +1525,124 @@
     for(var s = from; s < to; s++) list.push(s);
     readList(list, to === sentences.length);
   }
-  // liest die Sätze aus "list" nacheinander vor
+  // liest die Sätze aus "list" nacheinander vor (Satz für Satz: nur den ersten)
   function readList(list, whole){
-    if(!("speechSynthesis" in window)){ toast("Dieses Gerät kann leider nicht vorlesen.", 4000); return; }
-    speechSynthesis.cancel();
-    playing = true; updateButtons();
-    var last = null;
-    list.forEach(function(s){
-      (function(sIdx){
-        var idx = sentences[sIdx].filter(function(t){ return speakable(tokens[t].text); });
-        if(!idx.length) return;
-        var text = "", starts = [];
-        idx.forEach(function(t){
-          if(text) text += " ";
-          starts.push(text.length);
-          text += speechText(tokens[t].text);
-        });
-        var u = utter(text);
-        u.onstart = function(){ resumeFrom = sIdx; mark(sIdx, idx[0]); };
-        u.onboundary = function(e){
-          if(e.name && e.name !== "word") return;
-          var k = 0;
-          while(k + 1 < starts.length && starts[k + 1] <= e.charIndex) k++;
-          mark(sIdx, idx[k]);
-        };
-        speechSynthesis.speak(u);
-        last = u;
-      })(s);
+    halt();
+    var items = sentenceItems(list);
+    if(stepMode) items = items.slice(0, 1);
+    if(!items.length){ playing = false; stepPaused = false; updateButtons(); return; }
+    var r = run = { cancel: false, timers: [] };
+    playing = true; stepPaused = false; updateButtons();
+    if(kiName()){ piperRead(items, whole, r); return; }
+    if(!("speechSynthesis" in window)){ run = null; playing = false; updateButtons(); toast("Dieses Gerät kann leider nicht vorlesen.", 4000); return; }
+    var last = null, lastS = null;
+    items.forEach(function(it){
+      var text = "", starts = [];
+      it.words.forEach(function(w){ if(text) text += " "; starts.push(text.length); text += w; });
+      var u = utter(text);
+      u.onstart = function(){ if(run !== r) return; resumeFrom = it.s; mark(it.s, it.idx[0]); };
+      u.onboundary = function(e){
+        if(run !== r || (e.name && e.name !== "word")) return;
+        var k = 0;
+        while(k + 1 < starts.length && starts[k + 1] <= e.charIndex) k++;
+        mark(it.s, it.idx[k]);
+      };
+      speechSynthesis.speak(u);
+      last = u; lastS = it.s;
     });
-    if(!last){ playing = false; updateButtons(); return; }
-    last.onend = function(){ if(playing){ playing = false; resumeFrom = whole ? 0 : resumeFrom; mark(null, null); updateButtons(); } };
+    last.onend = function(){ if(run === r) readingDone(lastS, whole); };
+  }
+
+  // KI-Stimme: Satz für Satz erzeugen und abspielen; der nächste Satz wird schon berechnet, während der aktuelle läuft.
+  // Die Wortmarkierung wird aus der Länge der Wörter in Lautschrift geschätzt.
+  function piperRead(items, whole, r){
+    audioCtx();
+    var name = kiName();
+    if(!(piper.name === name && piper.sess)) toast("Die KI-Stimme " + KI[name] + " wird vorbereitet …");
+    piperLoad(name, function(f){ if(run === r && f > 0) toast("Die KI-Stimme " + KI[name] + " wird geladen … " + Math.round(f * 100) + " %"); }).then(function(){
+      var texts = [];
+      items.forEach(function(it){ it.ti = texts.length; texts.push(it.words.join(" ")); it.words.forEach(function(w){ texts.push(w); }); });
+      return phonemize(texts);
+    }).then(function(ph){
+      if(r.cancel) return;
+      msg.hidden = true;
+      items.forEach(function(it){
+        it.ids = ph[it.ti];
+        it.weights = it.words.map(function(w, k){ return Math.max(1, (ph[it.ti + 1 + k] || []).length / 2) + (/[,;:–—]$/.test(w) ? 4 : 0); });
+      });
+      var i = 0;
+      function step(pcmP){
+        var it = items[i];
+        var next = i + 1 < items.length ? piperSynth(items[i + 1].ids) : null;
+        return pcmP.then(function(pcm){
+          if(r.cancel) return;
+          resumeFrom = it.s; mark(it.s, it.idx[0]);
+          var dur = pcm.length / piper.cfg.audio.sample_rate * 1000;
+          var total = it.weights.reduce(function(a, b){ return a + b; }, 0), acc = 0;
+          var play = playPcm(pcm, r);
+          it.idx.forEach(function(t, k){
+            var at = 60 + (dur - 120) * acc / total; acc += it.weights[k];
+            if(k) r.timers.push(setTimeout(function(){ if(!r.cancel) mark(it.s, t); }, at));
+          });
+          return play;
+        }).then(function(){
+          if(r.cancel) return;
+          r.timers.forEach(clearTimeout); r.timers = [];
+          i++;
+          if(i >= items.length){ readingDone(it.s, whole); return; }
+          var newPara = tokens[items[i].idx[0]].para !== tokens[it.idx[0]].para;
+          return wait(newPara ? 450 : 150, r).then(function(){ if(!r.cancel) return step(next); });
+        });
+      }
+      return step(piperSynth(items[0].ids));
+    }).catch(function(){
+      if(run !== r) return;
+      readingDone(null, false);
+      toast("Die KI-Stimme konnte nicht geladen werden. Beim ersten Mal braucht sie Internet.", 5000);
+    });
+  }
+  // kurzen Text mit der KI-Stimme sagen (ein Wort, Hörprobe)
+  function piperSay(text, onStart){
+    halt();
+    var r = run = { cancel: false, timers: [] };
+    audioCtx();
+    return piperLoad(kiName()).then(function(){ return phonemize([text]); }).then(function(ph){ return piperSynth(ph[0]); })
+      .then(function(pcm){ if(r.cancel) return; if(onStart) onStart(); return playPcm(pcm, r); })
+      .then(function(){ if(run === r) run = null; return !r.cancel; });
   }
 
   function readWord(tIdx){
-    if(!("speechSynthesis" in window)) return;
     var t = tokens[tIdx];
     if(!t || !speakable(t.text)) return;
-    speechSynthesis.cancel();
-    playing = false; updateButtons();
-    var u = utter(speechText(t.text).replace(/[.,!?;:…"“”»«)]+$/, "").replace(/^["„“»«(]+/, ""));
+    var w = speechText(t.text).replace(/[.,!?;:…"“”»«)]+$/, "").replace(/^["„“»«(]+/, "");
+    halt();
+    playing = false; stepPaused = false; updateButtons();
+    resumeFrom = t.sentence;
+    if(kiName()){
+      piperSay(w, function(){ mark(null, tIdx); }).then(function(ok){ if(ok && !playing) mark(null, null); }).catch(function(){});
+      return;
+    }
+    if(!("speechSynthesis" in window)) return;
+    var u = utter(w);
     u.onstart = function(){ mark(null, tIdx); };
     u.onend = u.onerror = function(){ if(!playing) mark(null, null); };
     speechSynthesis.speak(u);
-    resumeFrom = t.sentence;
   }
 
   photoView.addEventListener("click", function(e){
-    if(moved > 8){ moved = 0; return; }       // war ein Verschieben oder Zoomen, kein Tippen
-    if(selecting) return;
+    if(moved > 8){ moved = 0; return; }       // war ein Verschieben, Zoomen oder langes Drücken, kein Tippen
+    if(selecting || selBusy) return;
     // beim Zoomen hält die Foto-Fläche den Finger fest – dann zählt, wo der Finger aufgesetzt wurde
     var b = e.target.closest(".pl") || (downTarget && downTarget.closest && downTarget.closest(".pl"));
     if(!b) return;
     var pIdx = +b.dataset.p;
     if(pIdx == null || !paraSent[pIdx]) return;
+    if(ordering){
+      var at = orderList.indexOf(pIdx);
+      if(at >= 0) orderList.splice(at, 1); else orderList.push(pIdx);
+      drawOrder();
+      return;
+    }
     readFrom(paraSent[pIdx][0], paraSent[pIdx][1]);
   });
   pvMark.addEventListener("click", function(e){
@@ -1272,7 +1651,7 @@
     pvMark.setAttribute("aria-pressed", String(showMarks));
     photoView.classList.toggle("clean", !showMarks);
   });
-  function setView(v){ if(view === v) return; stopReading(); if(selecting && !selBusy) setSelecting(false); view = v; save(); render(); }
+  function setView(v){ if(view === v) return; stopReading(); if(selecting && !selBusy) setSelecting(false); if(ordering) setOrdering(false); view = v; save(); render(); }
   viewPhotoBtn.addEventListener("click", function(){ setView("photo"); });
   viewTextBtn.addEventListener("click", function(){ setView("text"); });
 
@@ -1296,16 +1675,20 @@
   // es kennt zusätzlich Handschrift-, Schreibschrift-, Comic- und Grundschul-Schriften.
   // Lässt es sich nicht laden, wird das normale deutsche Modell genommen.
   var KIDS_MODEL = { langPath: new URL("tessdata", location.href).href, cachePath: "mread-kinderbuch-1", gzip: true };
+  var STD_MODEL = { langPath: new URL("tessdata/std", location.href).href, gzip: true };
+  // alle Teile der Texterkennung liegen in vendor/tesseract – so geht es auch ohne Internet
+  var TESS_FILES = { workerPath: new URL("vendor/tesseract/worker.min.js", location.href).href,
+                     corePath: new URL("vendor/tesseract/", location.href).href, workerBlobURL: false };
   function getWorker(){
     if(!workerReady){
       var log = { logger: function(m){ if(onProgress) onProgress(m); } };
       var make = function(extra){
-        return Tesseract.createWorker("deu", 1, Object.assign({}, log, extra || {})).then(function(w){
+        return Tesseract.createWorker("deu", 1, Object.assign({}, log, TESS_FILES, extra)).then(function(w){
           worker = w;
           return w.setParameters({ preserve_interword_spaces: "1", tessedit_pageseg_mode: "3" }).then(function(){ return w; });
         });
       };
-      workerReady = (kidsModel ? make(KIDS_MODEL).catch(function(){ return make(); }) : make())
+      workerReady = (kidsModel ? make(KIDS_MODEL).catch(function(){ return make(STD_MODEL); }) : make(STD_MODEL))
         .catch(function(err){ workerReady = null; throw err; });
     }
     return workerReady;
@@ -1469,6 +1852,74 @@
     });
     quadEl.innerHTML = html;
   }
+  /* Seitenecken automatisch finden (für „4 Ecken“): Das Blatt ist meist heller als der Tisch darunter.
+     Bild klein rechnen, in hell/dunkel teilen (Otsu), größte helle Fläche suchen, ihre 4 äußersten Punkte sind die Ecken. */
+  function findPage(img){
+    var iw = img.naturalWidth, ih = img.naturalHeight, sc = 320 / Math.max(iw, ih);
+    var W = Math.max(8, Math.round(iw * sc)), H = Math.max(8, Math.round(ih * sc));
+    var c = document.createElement("canvas"); c.width = W; c.height = H;
+    var g = c.getContext("2d"); g.drawImage(img, 0, 0, W, H);
+    var px = g.getImageData(0, 0, W, H).data, N = W * H, gray = new Float32Array(N), i, x, y;
+    for(i = 0; i < N; i++) gray[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+    // weichzeichnen (5×5), damit die Schrift auf dem Blatt verschwindet
+    var bl = new Float32Array(N);
+    for(y = 0; y < H; y++) for(x = 0; x < W; x++){
+      var s0 = 0, n0 = 0;
+      for(var dy = -2; dy <= 2; dy++){ var Y = y + dy; if(Y < 0 || Y >= H) continue;
+        for(var dx = -2; dx <= 2; dx++){ var X = x + dx; if(X < 0 || X >= W) continue; s0 += gray[Y * W + X]; n0++; } }
+      bl[y * W + x] = s0 / n0;
+    }
+    // Otsu-Schwelle
+    var hist = new Float64Array(256);
+    for(i = 0; i < N; i++) hist[Math.min(255, bl[i] | 0)]++;
+    var sum = 0; for(i = 0; i < 256; i++) sum += i * hist[i];
+    var wB = 0, sB = 0, best = 0, thr = 128;
+    for(i = 0; i < 256; i++){
+      wB += hist[i]; if(!wB) continue;
+      var wF = N - wB; if(!wF) break;
+      sB += i * hist[i];
+      var mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) * (mB - mF);
+      if(v > best){ best = v; thr = i; }
+    }
+    // zusammenhängende Flächen (hell oder dunkel) einsammeln
+    function largest(bright){
+      var lab = new Int32Array(N), stack = [], bestA = 0, bestPts = null, id = 0;
+      for(var s = 0; s < N; s++){
+        if(lab[s] || (bl[s] > thr) !== bright) continue;
+        id++; lab[s] = id; stack.push(s);
+        var area = 0, tl = [0, 0, Infinity], tr = [0, 0, -Infinity], br = [0, 0, -Infinity], bll = [0, 0, -Infinity], edges = 0;
+        while(stack.length){
+          var k = stack.pop(), kx = k % W, ky = (k - kx) / W;
+          area++;
+          if(kx === 0 || ky === 0 || kx === W - 1 || ky === H - 1) edges++;
+          if(kx + ky < tl[2]) tl = [kx, ky, kx + ky];
+          if(kx - ky > tr[2]) tr = [kx, ky, kx - ky];
+          if(kx + ky > br[2]) br = [kx, ky, kx + ky];
+          if(ky - kx > bll[2]) bll = [kx, ky, ky - kx];
+          var nb = [k - 1, k + 1, k - W, k + W];
+          for(var j = 0; j < 4; j++){
+            var m = nb[j];
+            if(m < 0 || m >= N || lab[m]) continue;
+            if((j === 0 && kx === 0) || (j === 1 && kx === W - 1)) continue;
+            if((bl[m] > thr) !== bright) continue;
+            lab[m] = id; stack.push(m);
+          }
+        }
+        // Fläche, die am Bildrand klebt, ist Hintergrund oder ein Blatt, das nicht ganz im Bild ist – dann lieber nicht raten
+        if(area > bestA && edges < (W + H) * 0.08){ bestA = area; bestPts = [tl, tr, br, bll]; }
+      }
+      return bestPts ? { area: bestA, q: bestPts.map(function(p){ return [(p[0] + 0.5) / W, (p[1] + 0.5) / H]; }) } : null;
+    }
+    var cand = [largest(true), largest(false)].filter(function(r){
+      if(!r) return false;
+      var qa = quadArea(r.q);
+      // genug groß, nicht das ganze Foto, und die Fläche füllt das Viereck gut aus (also ein Blatt, kein Fleck)
+      return qa > 0.15 && qa < 0.97 && r.area / N > qa * 0.8;
+    });
+    if(!cand.length) return null;
+    cand.sort(function(a, b){ return b.area - a.area; });
+    return cand[0].q;
+  }
   function showCrop(on){
     crop.hidden = !on;
     cropControls.hidden = !on;
@@ -1561,7 +2012,17 @@
     cropTip.textContent = m === "rect"
       ? "Zieh den Rahmen um den Text, der vorgelesen werden soll."
       : "Zieh die 4 gelben Ecken auf die Ecken des Textes – dann wird das Foto gerade gezogen.";
-    if(cropState){ if(m === "rect") cropState.q = bounds(cropState.q); if(cropState.box) drawQuad(); }
+    if(cropState){
+      if(m === "rect") cropState.q = bounds(cropState.q);
+      else{
+        if(cropState.page === undefined){ try{ cropState.page = findPage(cropState.img); }catch(e){ cropState.page = null; } }
+        if(cropState.page){
+          cropState.q = cropState.page.map(function(p){ return p.slice(); });
+          cropTip.textContent = "Ich habe die Seite gefunden. Passen die 4 Ecken? Sonst einfach hinziehen.";
+        }
+      }
+      if(cropState.box) drawQuad();
+    }
     save();
   }
   modeRect.addEventListener("click", function(){ setCropMode("rect"); });
@@ -1699,6 +2160,58 @@
       });
     });
   }
+  // Gründlich suchen: zusätzlich (1) nach verstreuten Wörtern suchen und (2) das Bild in 4 sich überlappenden,
+  // vergrößerten Stücken lesen. Was dabei an neuen Stellen gefunden wird, kommt dazu.
+  function thoroughPasses(p, data, onStep){
+    var W = p.canvas.width, H = p.canvas.height;
+    // Punkte aus dem ungedrehten Bild in die (leicht gedrehte) Lage der ersten Erkennung umrechnen
+    var ang = (data.rotateRadians || 0) * ROT_SIGN, ca = Math.cos(ang), sa = Math.sin(ang);
+    function toBase(x, y){ var dx = x - W / 2, dy = y - H / 2; return [W / 2 + dx * ca - dy * sa, H / 2 + dx * sa + dy * ca]; }
+    function moved(d, ox, oy, k){
+      return { blocks: (d.blocks || []).map(function(bl){ return { paragraphs: (bl.paragraphs || []).map(function(pp){ return { lines: (pp.lines || []).map(function(l){
+        return { words: (l.words || []).map(function(w){
+          var b = w.bbox, pts = [toBase(ox + b.x0 / k, oy + b.y0 / k), toBase(ox + b.x1 / k, oy + b.y0 / k), toBase(ox + b.x0 / k, oy + b.y1 / k), toBase(ox + b.x1 / k, oy + b.y1 / k)];
+          var xs = pts.map(function(q){ return q[0]; }), ys = pts.map(function(q){ return q[1]; });
+          return { text: w.text, confidence: w.confidence, bbox: { x0: Math.min.apply(0, xs), y0: Math.min.apply(0, ys), x1: Math.max.apply(0, xs), y1: Math.max.apply(0, ys) } };
+        }) };
+      }) }; }) }; }) };
+    }
+    var w;
+    return getWorker().then(function(wk){
+      w = wk;
+      if(onStep) onStep(1);
+      return w.setParameters({ tessedit_pageseg_mode: "11" });
+    }).then(function(){
+      return w.recognize(p.canvas, { rotateAuto: true }, { text: true, blocks: true });
+    }).then(function(res){
+      data = mergeData(data, res.data);
+      return w.setParameters({ tessedit_pageseg_mode: "3" });
+    }).then(function(){
+      var tiles = [], ov = 0.12;
+      [0, 1].forEach(function(ty){ [0, 1].forEach(function(tx){
+        var x0 = Math.max(0, (tx * 0.5 - (tx ? ov : 0)) * W), y0 = Math.max(0, (ty * 0.5 - (ty ? ov : 0)) * H);
+        var x1 = Math.min(W, ((tx + 1) * 0.5 + (tx ? 0 : ov)) * W), y1 = Math.min(H, ((ty + 1) * 0.5 + (ty ? 0 : ov)) * H);
+        tiles.push([x0, y0, x1 - x0, y1 - y0]);
+      }); });
+      var chain = Promise.resolve();
+      tiles.forEach(function(t, i){
+        chain = chain.then(function(){
+          if(onStep) onStep(2 + i);
+          var k = Math.max(1, Math.min(2, 2000 / Math.max(t[2], t[3])));
+          var c = document.createElement("canvas"); c.width = Math.round(t[2] * k); c.height = Math.round(t[3] * k);
+          var g = c.getContext("2d"); g.imageSmoothingQuality = "high";
+          g.drawImage(p.canvas, t[0], t[1], t[2], t[3], 0, 0, c.width, c.height);
+          return w.recognize(c, { rotateAuto: false }, { text: true, blocks: true }).then(function(res){
+            data = mergeData(data, moved(res.data, t[0], t[1], k));
+          });
+        });
+      });
+      return chain;
+    }).then(function(){ return data; }, function(){
+      if(w) w.setParameters({ tessedit_pageseg_mode: "3" }).catch(function(){});
+      return data;                  // Zusatzsuche fehlgeschlagen: erstes Ergebnis behalten
+    });
+  }
   var srcCanvas = null;   // gerade gezogenes Foto in voller Auflösung (nur bis zum Neuladen)
 
   function recognize(img, url, q){
@@ -1714,6 +2227,13 @@
       busyText.textContent = st[2];
     };
     ocr(p, false, function(){ busyText.textContent = "Ich schaue noch genauer hin …"; }).then(function(data){
+      if(!thorough) return data;
+      onProgress = null;
+      return thoroughPasses(p, data, function(n){
+        busyText.textContent = "Ich suche gründlich nach weiteren Texten … (" + n + " von 5)";
+        bar.style.width = Math.round(60 + n * 8) + "%";
+      });
+    }).then(function(data){
       srcCanvas = p.src;
       var found = toParas(data, p.canvas.width, p.canvas.height);
       setBusy(false);
@@ -1839,7 +2359,7 @@
     vs.forEach(function(v){
       var b = document.createElement("button");
       b.type = "button"; b.className = "voice"; b.setAttribute("role", "radio");
-      b.setAttribute("aria-checked", String(voice && v.voiceURI === voice.voiceURI));
+      b.setAttribute("aria-checked", String(!kiName() && voice && v.voiceURI === voice.voiceURI));
       var nm = document.createElement("span"); nm.className = "nm";
       nm.textContent = v.name.replace(/\s*\((Erweitert|Enhanced|Premium)\)/i, "");
       b.appendChild(nm);
@@ -1848,15 +2368,49 @@
       b.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>');
       b.addEventListener("click", function(){
         voiceURI = v.voiceURI; voice = v; save();
-        Array.prototype.forEach.call(voicesEl.children, function(x){ x.setAttribute("aria-checked", String(x === b)); });
         stopReading();
+        renderVoices(); renderKi();
         speechSynthesis.speak(utter(SAMPLE));
       });
       voicesEl.appendChild(b);
     });
   }
-  var optKids = $("optKids");
-  gearBtn.addEventListener("click", function(){ pickVoice(); renderVoices(); optKids.checked = kidsModel; scrim.hidden = false; });
+  var kiEl = $("kiVoices"), kiProg = {};
+  function renderKi(){
+    kiEl.replaceChildren();
+    Object.keys(KI).forEach(function(name){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "voice"; b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", String(kiName() === name));
+      var nm = document.createElement("span"); nm.className = "nm";
+      nm.innerHTML = KI[name] + ' <span class="prog"></span>';
+      nm.querySelector(".prog").textContent = kiProg[name] || KI_INFO[name];
+      b.appendChild(nm);
+      var tag = document.createElement("span"); tag.className = "tag ki"; tag.textContent = "KI"; b.appendChild(tag);
+      b.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>');
+      b.addEventListener("click", function(){
+        stopReading();
+        voiceURI = "piper:" + name; save();
+        renderVoices(); renderKi();
+        audioCtx();
+        var prog = function(t){ kiProg[name] = t; var el = kiEl.querySelector('[data-ki="' + name + '"] .prog'); if(el) el.textContent = t; };
+        if(!(piper.name === name && piper.sess)) prog("wird vorbereitet …");
+        piperLoad(name, function(f){ prog("lädt … " + Math.round(f * 100) + " %"); }).then(function(){
+          prog("bereit – auch ohne Internet");
+          if(kiName() === name) return piperSay(SAMPLE);
+        }).catch(function(){ prog("Laden fehlgeschlagen – nochmal tippen"); });
+      });
+      b.dataset.ki = name;
+      kiEl.appendChild(b);
+      // schon einmal geladen? Dann liegt die Stimme im Speicher des iPads
+      if(!kiProg[name] && window.caches) caches.match("voices/" + name + ".onnx").then(function(hit){
+        if(hit && !kiProg[name]){ kiProg[name] = "geladen – auch ohne Internet"; var el = b.querySelector(".prog"); if(el) el.textContent = kiProg[name]; }
+      }).catch(function(){});
+    });
+  }
+  var optKids = $("optKids"), optThorough = $("optThorough");
+  gearBtn.addEventListener("click", function(){ pickVoice(); renderVoices(); renderKi(); optKids.checked = kidsModel; optThorough.checked = thorough; scrim.hidden = false; });
+  optThorough.addEventListener("change", function(){ thorough = optThorough.checked; save(); });
   optKids.addEventListener("change", function(){
     kidsModel = optKids.checked; save();
     // Erkennung beim nächsten Foto mit dem gewählten Modell neu starten
@@ -1874,6 +2428,11 @@
   camSmall.addEventListener("click", openCamera);
   galleryBtn.addEventListener("click", function(){ galleryInput.click(); });
 
+  stepBtn.addEventListener("click", function(){
+    stepMode = !stepMode; save();
+    if(playing || stepPaused) stopReading(); else updateButtons();
+    toast(stepMode ? "Satz für Satz: Nach jedem Satz geht es mit dem großen Knopf weiter." : "Alles am Stück vorlesen.", 2500);
+  });
   speedBtn.addEventListener("click", function(){
     slow = !slow; save(); updateButtons();
     if(playing) readFrom(resumeFrom);
@@ -1888,6 +2447,8 @@
   viewerClose.addEventListener("click", function(){ viewer.hidden = true; });
   viewer.addEventListener("click", function(e){ if(e.target === viewer) viewer.hidden = true; });
 
+  // Ton schon beim Antippen freischalten – auch wenn das Vorlesen erst später beginnt (z. B. nach dem Neu-Lesen)
+  document.addEventListener("pointerup", function(){ if(kiName()) audioCtx(); }, true);
   document.addEventListener("visibilitychange", function(){ if(document.visibilityState !== "visible") stopReading(); });
 
   load();
@@ -1898,8 +2459,13 @@
   // Texterkennung im Hintergrund schon vorbereiten, damit das erste Foto schneller geht
   if(typeof Tesseract !== "undefined") setTimeout(function(){ getWorker().catch(function(){}); }, 1200);
 
+  // Offline-Speicher: App, Schrift und Texterkennung bleiben auf dem iPad (siehe sw.js)
+  if("serviceWorker" in navigator && location.protocol !== "file:"){
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  }
+
   // für Tests
-  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad, prepare: prepare, merge: mergeData, arrange: arrange, paraRect: paraRect, xycut: xycut, crop: function(){ return cropState && cropState.q; } };
+  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad, prepare: prepare, merge: mergeData, arrange: arrange, paraRect: paraRect, xycut: xycut, crop: function(){ return cropState && cropState.q; }, findPage: findPage, phonemize: phonemize, piperLoad: piperLoad };
 })();
 </script>
 </body>
