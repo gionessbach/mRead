@@ -6,10 +6,14 @@ Eine einfache Web-App fürs iPad, mit der Kinder Fotos von gedruckten Texten mac
 
 ## Funktionen
 
+- **Kurzbefehl „mRead Foto“ (empfohlen):** Nutzt die Texterkennung des iPads (Live Text). Sie ist deutlich genauer als die eingebaute und kommt auch mit schrägen oder gewölbten Seiten zurecht. Einrichtung siehe unten.
+
 - **Foto machen:** Der große gelbe Knopf öffnet die Kamera. Über den Bild-Knopf unten links lässt sich auch ein Foto aus der Mediathek wählen.
-- **Texterkennung:** Der Text wird direkt auf dem iPad erkannt (Deutsch). Bilder und Verzierungen auf der Seite werden weitgehend ignoriert, am Zeilenende getrennte Wörter wieder zusammengesetzt.
+- **Eingebaute Texterkennung:** Der Text wird direkt im Browser erkannt (Deutsch). Sie braucht ein gerade von oben aufgenommenes Foto. Bilder und Verzierungen auf der Seite werden weitgehend ignoriert, am Zeilenende getrennte Wörter wieder zusammengesetzt.
 - **Vorlesen:** Der gelbe Abspiel-Knopf liest den ganzen Text vor. Der aktuelle Satz wird hellgelb, das aktuelle Wort kräftig gelb markiert. Stopp hält an, beim nächsten Tippen geht es beim gleichen Satz weiter.
 - **Wort antippen:** Liest genau dieses Wort vor.
+- **Text einfügen** (Klemmbrett-Knopf): Fügt kopierten Text ein, zum Beispiel aus der Kamera-App mit Live Text („Alles kopieren“).
+- **Stimme wählen** (Zahnrad): Alle deutschen Stimmen des iPads zum Probehören. Die beste wird automatisch gewählt.
 - **Tempo:** Umschalten zwischen normal und langsam.
 - **A− / A+:** Schrift kleiner oder größer.
 - **Abc / ABC:** Umschalten zwischen normaler Schreibweise und Großbuchstaben. Ä, Ö, Ü bleiben erhalten, ß wird zum großen ẞ.
@@ -21,9 +25,28 @@ Die Schrift ist [Andika](https://fonts.google.com/specimen/Andika), eine Drucksc
 
 ## Tipps für gute Fotos
 
-- Das iPad gerade und ruhig über die Seite halten, die ganze Zeile muss im Bild sein.
+- Das iPad **genau von oben** über die Seite halten, nicht schräg. Die ganze Zeile muss im Bild sein.
 - Gutes Licht, keine Schatten auf dem Text.
 - Lieber nah an den Text heran als die ganze Doppelseite.
+
+## Kurzbefehl „mRead Foto“ einrichten
+
+Einmalig in der App **Kurzbefehle** auf dem iPad:
+
+1. Unten rechts bzw. oben auf **+** tippen, um einen neuen Kurzbefehl anzulegen. Oben als Namen **mRead Foto** eintragen.
+2. Aktion **Foto aufnehmen** hinzufügen (im Suchfeld „Foto aufnehmen“ eingeben). Über den kleinen Pfeil kann **Vorschau anzeigen** ausgeschaltet werden, dann geht es schneller.
+3. Aktion **Text aus Bild extrahieren** hinzufügen. Als Eingabe ist automatisch das Foto eingetragen.
+4. Aktion **URL codieren** hinzufügen (im Suchfeld „codieren“ eingeben). Eingabe: der Text aus dem Bild.
+5. Aktion **URL** hinzufügen und hineinschreiben: `https://gionessbach.github.io/mread/#t=`
+   Direkt dahinter, ohne Leerzeichen, die Variable **URL-codierter Text** einfügen (sie erscheint über der Tastatur).
+6. Aktion **URLs öffnen** hinzufügen.
+7. Oben auf den Namen bzw. das Info-Symbol tippen → **Zum Home-Bildschirm**. Als Symbol kann ein Foto gewählt werden, zum Beispiel ein Bildschirmfoto des mRead-Logos.
+
+Beim ersten Start fragt das iPad, ob der Kurzbefehl die Kamera nutzen und die Website öffnen darf. Beides mit **Erlauben** (bzw. **Immer erlauben**) bestätigen.
+
+Danach: Symbol **mRead Foto** antippen → Foto machen → mRead öffnet sich mit dem erkannten Text.
+
+Hinweis: Der Kurzbefehl öffnet mRead in **Safari**. Safari und ein Home-Bildschirm-Symbol der Website speichern ihre Einstellungen getrennt. Die Stimme also in der Safari-Version auswählen, die der Kurzbefehl öffnet.
 
 ## Einrichtung auf dem iPad
 
@@ -48,6 +71,6 @@ var EIGENE_WOERTER = ["doofi", "bloedmann"];
 
 ## Technik
 
-Eine einzige Datei (`index.html`) ohne Build-Schritt. Texterkennung mit [Tesseract.js](https://github.com/naptha/tesseract.js) (läuft im Browser, deutsche Sprachdaten von jsDelivr), Vorlesen mit der Web Speech API, Speicherung in `localStorage`. Gehostet über GitHub Pages.
+Eine einzige Datei (`index.html`) ohne Build-Schritt. Text vom Kurzbefehl kommt über `#t=<URL-codierter Text>` in die Seite. Eingebaute Texterkennung mit [Tesseract.js](https://github.com/naptha/tesseract.js) (läuft im Browser, deutsche Sprachdaten von jsDelivr), Vorlesen mit der Web Speech API, Speicherung in `localStorage`. Gehostet über GitHub Pages.
 
 Gedacht für die private Nutzung auf einem eigenen iPad.

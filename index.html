@@ -134,6 +134,32 @@
 
   .file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 
+  /* Stimmenauswahl */
+  .scrim{
+    position:fixed;inset:0;z-index:10;background:rgba(38,38,31,.32);display:flex;justify-content:flex-end;align-items:flex-start;
+    padding-top:max(16px, env(safe-area-inset-top,0px));
+    padding-right:max(16px, env(safe-area-inset-right,0px));
+    padding-left:max(16px, env(safe-area-inset-left,0px));
+    padding-bottom:max(16px, env(safe-area-inset-bottom,0px));
+  }
+  .panel{
+    width:min(400px,100%);max-height:100%;overflow-y:auto;background:var(--sheet);border-radius:22px;padding:20px 22px;
+    box-shadow:0 16px 48px rgba(38,38,31,.22);display:flex;flex-direction:column;gap:12px;
+  }
+  .panel-head{display:flex;justify-content:space-between;align-items:center}
+  .panel h2{margin:0;font-size:21px;font-weight:700}
+  .panel-hint{margin:0;color:var(--muted);font-size:14px;line-height:1.45}
+  .x{width:44px;height:44px;border-radius:50%;border:0;background:var(--bg);font-size:20px;cursor:pointer}
+  .voices{display:flex;flex-direction:column;gap:8px}
+  .voice{
+    display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 14px;text-align:left;cursor:pointer;
+    border:2px solid var(--line);border-radius:14px;background:var(--sheet);font-size:17px;
+  }
+  .voice[aria-checked="true"]{border-color:var(--ink);background:var(--mark-soft)}
+  .voice .nm{flex:1;min-width:0}
+  .voice .tag{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--yellow);border-radius:999px;padding:3px 8px}
+  .voice svg{width:22px;height:22px;flex:none}
+
   @media (prefers-reduced-motion:reduce){ .busy .photo::after{animation:none;top:39%} }
   @media (max-width:560px){ .brand span{display:none} .toggle button{min-width:64px} }
 </style>
@@ -143,6 +169,9 @@
   <div class="bar">
     <div class="brand"><img src="apple-touch-icon.png" alt=""><span>mRead</span></div>
     <div class="group">
+      <button id="gearBtn" class="round" type="button" aria-label="Stimme wählen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
       <button id="photoBtn" class="thumb" type="button" aria-label="Foto ansehen" hidden></button>
       <div class="toggle" role="group" aria-label="Schriftgröße">
         <button id="smaller" type="button" aria-label="Schrift kleiner">A−</button>
@@ -166,7 +195,7 @@
         <path d="M52 61h16M52 70h11" stroke="#26261F" stroke-width="5"/>
       </svg>
       <div class="big">Mach ein Foto von einem Text.</div>
-      <div class="small">Halte das iPad ruhig und gerade über die Seite. Dann lese ich dir den Text vor.</div>
+      <div class="small">Halte das iPad ruhig und genau von oben über die Seite. Dann lese ich dir den Text vor.</div>
     </div>
 
     <div class="busy" id="busy" hidden>
@@ -184,6 +213,9 @@
       <button id="camSmall" class="round" type="button" aria-label="Neues Foto" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>
       </button>
+      <button id="pasteBtn" class="round" type="button" aria-label="Kopierten Text einfügen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg>
+      </button>
       <button id="galleryBtn" class="round" type="button" aria-label="Bild aus Fotos wählen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
       </button>
@@ -192,6 +224,18 @@
     <div class="right">
       <button id="speedBtn" class="round speed" type="button" aria-label="Tempo umschalten"></button>
     </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
+    <div class="panel-head">
+      <h2 id="panelTitle">Stimme</h2>
+      <button id="closeBtn" class="x" type="button" aria-label="Schließen">✕</button>
+    </div>
+    <p class="panel-hint">Tippe auf eine Stimme, um sie zu hören und auszuwählen.</p>
+    <div class="voices" id="voices" role="radiogroup" aria-label="Deutsche Stimmen"></div>
+    <p class="panel-hint">Schönere Stimmen lassen sich auf dem iPad laden: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch. Stimmen mit „Erweitert“ oder „Premium“ klingen am natürlichsten. Danach mRead neu öffnen.</p>
   </div>
 </div>
 
@@ -217,6 +261,7 @@
   var camInput = $("camInput"), galleryInput = $("galleryInput");
   var modeNormal = $("modeNormal"), modeUpper = $("modeUpper"), smaller = $("smaller"), bigger = $("bigger");
   var photoBtn = $("photoBtn"), viewer = $("viewer"), viewerImg = $("viewerImg"), viewerClose = $("viewerClose");
+  var pasteBtn = $("pasteBtn"), gearBtn = $("gearBtn"), scrim = $("scrim"), closeBtn = $("closeBtn"), voicesEl = $("voices");
 
   var ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>';
   var ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></svg>';
@@ -231,9 +276,10 @@
   var sizes = [32, 40, 48, 58, 70, 84], sizeIdx = 2;
   var photoURL = null;
   var playing = false, resumeFrom = 0;
+  var voiceURI = null;      // gewählte Stimme (leer = automatisch die beste)
 
   function save(){
-    try{ localStorage.setItem("mread", JSON.stringify({paras:paras, upper:upper, slow:slow, sizeIdx:sizeIdx})); }catch(e){}
+    try{ localStorage.setItem("mread", JSON.stringify({paras:paras, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI})); }catch(e){}
   }
   function load(){
     try{
@@ -241,6 +287,7 @@
       if(!d) return;
       if(Array.isArray(d.paras)) paras = d.paras.filter(Array.isArray);
       upper = !!d.upper; slow = !!d.slow;
+      if(typeof d.voiceURI === "string") voiceURI = d.voiceURI;
       if(d.sizeIdx >= 0 && d.sizeIdx < sizes.length) sizeIdx = d.sizeIdx;
     }catch(e){}
   }
@@ -419,10 +466,28 @@
 
   /* ---------- Vorlesen ---------- */
   var voice = null;
+  // Spaßstimmen von Apple, die zum Vorlesen nicht taugen
+  var FUN = /bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|albert|fred|junior|ralph|kathy|grandma|grandpa|rocko|shelley|eddy|flo|reed|sandy/i;
+  function quality(v){
+    var id = (v.voiceURI + " " + v.name).toLowerCase();
+    if(/premium/.test(id)) return 3;
+    if(/enhanced|erweitert/.test(id)) return 2;
+    return 1;
+  }
+  function germanVoices(){
+    if(!("speechSynthesis" in window)) return [];
+    return speechSynthesis.getVoices()
+      .filter(function(v){ return /^de/i.test(v.lang) && !FUN.test(v.name); })
+      .sort(function(a, b){
+        return quality(b) - quality(a) ||
+          (/anna|petra|helena|marlene|vicki/i.test(b.name) ? 1 : 0) - (/anna|petra|helena|marlene|vicki/i.test(a.name) ? 1 : 0) ||
+          a.name.localeCompare(b.name);
+      });
+  }
   function pickVoice(){
-    if(!("speechSynthesis" in window)) return;
-    var vs = speechSynthesis.getVoices().filter(function(v){ return /^de/i.test(v.lang); });
-    voice = vs.filter(function(v){ return /anna|petra|helena|marlene/i.test(v.name); })[0] || vs[0] || null;
+    var vs = germanVoices();
+    voice = vs.filter(function(v){ return v.voiceURI === voiceURI; })[0] || vs[0] || null;
+    if(!scrim.hidden) renderVoices();
   }
   if("speechSynthesis" in window){
     pickVoice();
@@ -555,8 +620,9 @@
         var d = g.getImageData(0, 0, c.width, c.height), px = d.data;
         var lo = 255, hi = 0, i, v, gray = new Uint8ClampedArray(px.length / 4);
         for(i = 0; i < gray.length; i++){
+          // Mischung aus Helligkeit und dunkelstem Farbkanal: farbige Kästen werden heller, schwarze Schrift bleibt dunkel
           v = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
-          gray[i] = v;
+          gray[i] = 0.5 * v + 0.5 * Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
         }
         // Kontrast strecken (1 % ganz dunkel, 1 % ganz hell ignorieren)
         var hist = new Uint32Array(256); for(i = 0; i < gray.length; i++) hist[gray[i]]++;
@@ -627,6 +693,92 @@
   galleryInput.addEventListener("change", function(){ handleFile(galleryInput.files[0]); galleryInput.value = ""; });
   function openCamera(){ camInput.click(); }
 
+  /* ---------- Text von außen: Kurzbefehl (#t=…) oder Einfügen ---------- */
+  // Live Text liefert Zeilen. Daraus werden Absätze, getrennte Wörter werden wieder zusammengesetzt.
+  function textToParas(raw){
+    var lines = String(raw).replace(/\r/g, "").split("\n").map(function(l){ return l.replace(/\s+/g, " ").trim(); });
+    var out = [], cur = [];
+    function flush(){ if(cur.length){ out.push(cur); cur = []; } }
+    lines.forEach(function(line, i){
+      if(!line){ flush(); return; }
+      var bullet = /^[•·▪●◦\-–*]\s+/.test(line);
+      if(bullet){ flush(); line = line.replace(/^[•·▪●◦\-–*]\s+/, ""); }
+      var ws = line.split(" ").filter(Boolean);
+      if(!ws.length) return;
+      var prev = cur[cur.length - 1];
+      // kurze Zeile ohne Satzzeichen nach einem Satzende, danach Großbuchstabe: vermutlich eine Überschrift
+      var next = lines[i + 1] || "";
+      if(ws.length <= 5 && !/[.,;:!?…"“”»«)-]$/.test(line) && (!prev || /[.!?:…"“”»«]$/.test(prev)) && (!next || /^[A-ZÄÖÜ„"»«•·▪●◦\-–*]/.test(next))){
+        flush(); out.push(ws); return;
+      }
+      if(prev && /[A-Za-zÄÖÜäöüß]-$/.test(prev) && /^[a-zäöüß]/.test(ws[0]) && !/^(und|oder|bis|sowie)$/.test(ws[0].replace(/[.,!?;:]$/, ""))){
+        cur[cur.length - 1] = prev.slice(0, -1) + ws.shift();   // "Hau-" + "fen" → "Haufen"
+      }
+      Array.prototype.push.apply(cur, ws);
+    });
+    flush();
+    return out.map(function(ws){ return ws.map(censor); });
+  }
+  function useText(raw, source){
+    var found = textToParas(raw || "");
+    if(!found.length){ toast(source === "paste" ? "In der Zwischenablage ist kein Text." : "Der Kurzbefehl hat keinen Text gefunden.", 4000); return; }
+    stopReading();
+    paras = found; resumeFrom = 0;
+    if(photoURL){ URL.revokeObjectURL(photoURL); photoURL = null; }
+    scroller.scrollTop = 0;
+    save(); render();
+  }
+  function readHash(){
+    var h = location.hash;
+    if(h.indexOf("#t=") !== 0) return;
+    var raw;
+    try{ raw = decodeURIComponent(h.slice(3).replace(/\+/g, "%20")); }catch(e){ raw = h.slice(3); }
+    try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}
+    useText(raw, "shortcut");
+  }
+  window.addEventListener("hashchange", readHash);
+
+  pasteBtn.addEventListener("click", function(){
+    if(!navigator.clipboard || !navigator.clipboard.readText){
+      toast("Einfügen geht in diesem Browser leider nicht.", 4000); return;
+    }
+    navigator.clipboard.readText().then(function(t){ useText(t, "paste"); })
+      .catch(function(){ toast("Einfügen wurde nicht erlaubt.", 3000); });
+  });
+
+  /* ---------- Stimmenauswahl ---------- */
+  var SAMPLE = "Hallo! So klinge ich, wenn ich dir vorlese.";
+  function renderVoices(){
+    var vs = germanVoices();
+    voicesEl.replaceChildren();
+    if(!vs.length){
+      var p = document.createElement("p"); p.className = "panel-hint";
+      p.textContent = "Auf diesem Gerät wurde keine deutsche Stimme gefunden.";
+      voicesEl.appendChild(p); return;
+    }
+    vs.forEach(function(v){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "voice"; b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", String(voice && v.voiceURI === voice.voiceURI));
+      var nm = document.createElement("span"); nm.className = "nm";
+      nm.textContent = v.name.replace(/\s*\((Erweitert|Enhanced|Premium)\)/i, "");
+      b.appendChild(nm);
+      var q = quality(v);
+      if(q > 1){ var tag = document.createElement("span"); tag.className = "tag"; tag.textContent = q === 3 ? "Premium" : "Erweitert"; b.appendChild(tag); }
+      b.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>');
+      b.addEventListener("click", function(){
+        voiceURI = v.voiceURI; voice = v; save();
+        Array.prototype.forEach.call(voicesEl.children, function(x){ x.setAttribute("aria-checked", String(x === b)); });
+        stopReading();
+        speechSynthesis.speak(utter(SAMPLE));
+      });
+      voicesEl.appendChild(b);
+    });
+  }
+  gearBtn.addEventListener("click", function(){ pickVoice(); renderVoices(); scrim.hidden = false; });
+  closeBtn.addEventListener("click", function(){ scrim.hidden = true; });
+  scrim.addEventListener("click", function(e){ if(e.target === scrim) scrim.hidden = true; });
+
   /* ---------- Knöpfe ---------- */
   mainBtn.addEventListener("click", function(){
     if(!tokens.length){ openCamera(); return; }
@@ -652,13 +804,15 @@
   document.addEventListener("visibilitychange", function(){ if(document.visibilityState !== "visible") stopReading(); });
 
   load();
+  pickVoice();
   render();
+  readHash();
 
   // Texterkennung im Hintergrund schon vorbereiten, damit das erste Foto schneller geht
   if(typeof Tesseract !== "undefined") setTimeout(function(){ getWorker().catch(function(){}); }, 1200);
 
   // für Tests
-  window.__mr = { toParas: toParas, handleFile: handleFile, isBad: isBad };
+  window.__mr = { toParas: toParas, textToParas: textToParas, handleFile: handleFile, isBad: isBad };
 })();
 </script>
 </body>
