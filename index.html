@@ -192,6 +192,8 @@
   }
   .crop-area{position:absolute;inset:64px 16px 16px;touch-action:none}
   .crop-area img{position:absolute;-webkit-user-drag:none;pointer-events:none}
+  .cropmode button{min-width:0;height:56px;padding:0 14px;font-family:var(--font-ui);font-size:16px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+  .cropmode svg{width:22px;height:22px}
   .quad{position:absolute;inset:0;width:100%;height:100%;overflow:visible;touch-action:none}
   .quad .mask{fill:rgba(20,20,16,.6);fill-rule:evenodd}
   .quad .edge{fill:rgba(253,208,2,.08);stroke:var(--yellow);stroke-width:3;stroke-linejoin:round;cursor:move}
@@ -311,6 +313,14 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
     </button>
     <div class="right">
+      <div class="toggle cropmode" role="group" aria-label="Form des Rahmens">
+        <button id="modeRect" type="button" aria-pressed="true" aria-label="Rechteck">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="1.5"/></svg>Rechteck
+        </button>
+        <button id="modeQuad" type="button" aria-pressed="false" aria-label="4 Ecken frei, Foto gerade ziehen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M5 7l14-2 1 13-16 1z"/></svg>4 Ecken
+        </button>
+      </div>
       <button id="cropAll" class="round speed" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></svg>
         Ganzes Foto
@@ -400,7 +410,7 @@
   var voiceURI = null;      // gewählte Stimme (leer = automatisch die beste)
 
   function save(){
-    var d = {paras:paras, boxes:boxes, photoData:photoData, view:view, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI};
+    var d = {paras:paras, boxes:boxes, photoData:photoData, view:view, upper:upper, slow:slow, sizeIdx:sizeIdx, voiceURI:voiceURI, cropMode:cropMode};
     try{ localStorage.setItem("mread", JSON.stringify(d)); }
     catch(e){
       // Foto zu groß für den Speicher: dann ohne Foto speichern
@@ -417,6 +427,7 @@
         boxes = d.boxes; photoData = d.photoData; view = d.view === "text" ? "text" : "photo";
       }
       upper = !!d.upper; slow = !!d.slow;
+      if(d.cropMode === "quad") cropMode = "quad";
       if(typeof d.voiceURI === "string") voiceURI = d.voiceURI;
       if(d.sizeIdx >= 0 && d.sizeIdx < sizes.length) sizeIdx = d.sizeIdx;
     }catch(e){}
@@ -1260,6 +1271,8 @@
   /* ---------- Bereich auf dem Foto wählen (Viereck mit 4 Ecken) ---------- */
   // q: Ecken in Anteilen 0…1, Reihenfolge oben links, oben rechts, unten rechts, unten links
   var cropState = null;   // { img, url, q: [[x,y]×4], box: angezeigtes Bild in px }
+  var cropMode = "rect";  // "rect" = Rechteck, "quad" = 4 Ecken frei (Foto wird gerade gezogen)
+  var modeRect = $("modeRect"), modeQuad = $("modeQuad"), cropTip = crop.querySelector(".crop-tip");
   var quadEl = $("quad"), SVGNS = "http://www.w3.org/2000/svg";
 
   function rectQuad(x0, y0, x1, y1){ return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; }
@@ -1302,6 +1315,7 @@
   function startCrop(loaded){
     cropState = { img: loaded.img, url: loaded.url, q: rectQuad(0.05, 0.05, 0.95, 0.95) };
     cropImg.src = loaded.url;
+    setCropMode(cropMode);
     showCrop(true);
     layoutCrop();
   }
@@ -1334,7 +1348,14 @@
   cropArea.addEventListener("pointermove", function(e){
     if(!drag || !cropState) return;
     var p = pt(e), x = clamp(p[0], 0, 1), y = clamp(p[1], 0, 1);
-    if(drag.mode === "corner"){
+    if(drag.mode === "corner" && cropMode === "rect"){
+      // gegenüberliegende Ecke bleibt stehen, es bleibt ein Rechteck
+      var o = cropState.q[(drag.i + 2) % 4];
+      cropState.q = rectQuad(Math.min(o[0], x), Math.min(o[1], y), Math.max(o[0], x), Math.max(o[1], y));
+      var best = 0, bd = 9;
+      cropState.q.forEach(function(c, k){ var dd = Math.hypot(c[0] - x, c[1] - y); if(dd < bd){ bd = dd; best = k; } });
+      drag.i = best;
+    }else if(drag.mode === "corner"){
       cropState.q[drag.i] = [x, y];
     }else if(drag.mode === "move"){
       var dx = p[0] - drag.start[0], dy = p[1] - drag.start[1];
@@ -1365,6 +1386,23 @@
   cropArea.addEventListener("pointerup", endDrag);
   cropArea.addEventListener("pointercancel", endDrag);
   window.addEventListener("resize", layoutCrop);
+
+  function bounds(q){
+    var xs = q.map(function(c){ return c[0]; }), ys = q.map(function(c){ return c[1]; });
+    return rectQuad(Math.min.apply(0, xs), Math.min.apply(0, ys), Math.max.apply(0, xs), Math.max.apply(0, ys));
+  }
+  function setCropMode(m){
+    cropMode = m;
+    modeRect.setAttribute("aria-pressed", String(m === "rect"));
+    modeQuad.setAttribute("aria-pressed", String(m === "quad"));
+    cropTip.textContent = m === "rect"
+      ? "Zieh den Rahmen um den Text, der vorgelesen werden soll."
+      : "Zieh die 4 gelben Ecken auf die Ecken des Textes – dann wird das Foto gerade gezogen.";
+    if(cropState){ if(m === "rect") cropState.q = bounds(cropState.q); if(cropState.box) drawQuad(); }
+    save();
+  }
+  modeRect.addEventListener("click", function(){ setCropMode("rect"); });
+  modeQuad.addEventListener("click", function(){ setCropMode("quad"); });
 
   cropCancel.addEventListener("click", function(){ endCrop(false); render(); });
   cropAll.addEventListener("click", function(){ if(cropState){ cropState.q = rectQuad(0, 0, 1, 1); drawQuad(); } });

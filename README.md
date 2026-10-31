@@ -9,7 +9,11 @@ Eine einfache Web-App fürs iPad, mit der Kinder Fotos von gedruckten Texten mac
 - **Kurzbefehl „mRead Foto“ (empfohlen):** Nutzt die Texterkennung des iPads (Live Text). Sie ist deutlich genauer als die eingebaute und kommt auch mit schrägen oder gewölbten Seiten zurecht. Einrichtung siehe unten.
 
 - **Foto machen:** Der große gelbe Knopf öffnet die Kamera. Über den Bild-Knopf unten links lässt sich auch ein Foto aus der Mediathek wählen.
-- **Bereich wählen und gerade ziehen:** Nach dem Foto erscheint ein gelbes Viereck mit vier Ecken. Die Ecken einzeln auf die Ecken des Textes oder der Seite ziehen – auch schräg. mRead zieht das Foto dann gerade, als wäre es genau von oben aufgenommen. Das verbessert die Erkennung bei schräg fotografierten oder gewölbten Seiten deutlich. In das Viereck tippen und ziehen verschiebt es, daneben ziehen legt ein neues Rechteck an. „Ganzes Foto“ nimmt alles, der gelbe Haken startet das Lesen.
+- **Bereich wählen:** Nach dem Foto erscheint ein gelber Rahmen. Unten rechts lässt sich umschalten:
+  - **Rechteck** (Standard): Eine Ecke ziehen ändert die Größe, das Rechteck bleibt gerade.
+  - **4 Ecken:** Jede Ecke einzeln auf die Ecken des Textes oder der Seite ziehen – auch schräg. mRead zieht das Foto dann gerade, als wäre es genau von oben aufgenommen. Das verbessert die Erkennung bei schräg fotografierten oder gewölbten Seiten deutlich.
+
+  In den Rahmen tippen und ziehen verschiebt ihn, daneben ziehen legt ein neues Rechteck an. „Ganzes Foto“ nimmt alles, der gelbe Haken startet das Lesen. Die gewählte Form merkt sich mRead.
 - **Eingebaute Texterkennung:** Der Text wird direkt im Browser erkannt (Deutsch). Sie braucht ein gerade von oben aufgenommenes Foto. Auch verstreute Texte wie Beschriftungen neben Bildern werden gefunden und als eigene Bausteine behandelt. Bilder und Verzierungen auf der Seite werden weitgehend ignoriert, am Zeilenende getrennte Wörter wieder zusammengesetzt.
 - **Automatische Bildaufbereitung:** Vor dem Lesen wird das Foto Stück für Stück aufgehellt und der Kontrast verstärkt. Blasse Schrift, Text in farbigen Kästen und Schatten werden so besser erkannt. Ist das Ergebnis unsicher, liest mRead zusätzlich das unbearbeitete Foto und nimmt das bessere Ergebnis.
 - **Absätze wie im Original:** Überschriften, Absätze und Aufzählungspunkte aus dem Foto erscheinen auch in mRead als eigene Absätze. Erkannt werden sie an größerem Zeilenabstand, Einrückung, kurzer letzter Zeile, größerer Schrift oder einem Aufzählungspunkt. Beim Vorlesen gibt es an jedem Absatz eine kleine Pause.
