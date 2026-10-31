@@ -13,7 +13,7 @@ Eine einfache Web-App fürs iPad, mit der Kinder Fotos von gedruckten Texten mac
 - **Eingebaute Texterkennung:** Der Text wird direkt im Browser erkannt (Deutsch). Sie braucht ein gerade von oben aufgenommenes Foto. Auch verstreute Texte wie Beschriftungen neben Bildern werden gefunden und als eigene Bausteine behandelt. Bilder und Verzierungen auf der Seite werden weitgehend ignoriert, am Zeilenende getrennte Wörter wieder zusammengesetzt.
 - **Automatische Bildaufbereitung:** Vor dem Lesen wird das Foto Stück für Stück aufgehellt und der Kontrast verstärkt. Blasse Schrift, Text in farbigen Kästen und Schatten werden so besser erkannt. Ist das Ergebnis unsicher, liest mRead zusätzlich das unbearbeitete Foto und nimmt das bessere Ergebnis.
 - **Absätze wie im Original:** Überschriften, Absätze und Aufzählungspunkte aus dem Foto erscheinen auch in mRead als eigene Absätze. Erkannt werden sie an größerem Zeilenabstand, Einrückung, kurzer letzter Zeile, größerer Schrift oder einem Aufzählungspunkt. Beim Vorlesen gibt es an jedem Absatz eine kleine Pause.
-- **Foto-Ansicht** (Umschalter oben „Foto | Text“): Nach dem Lesen bleibt das Foto sichtbar. Beim Vorlesen leuchtet das gesprochene Wort direkt auf dem Foto auf, der ganze Satz leicht dahinter. Ein Tipp auf einen Text im Foto liest genau diesen Textbaustein vor, zum Beispiel eine Beschriftung neben einem Bild. Ideal für Kinder, die noch nicht lesen können. Gibt es nur bei Fotos, die mRead selbst liest (nicht beim Kurzbefehl oder Einfügen).
+- **Foto-Ansicht** (Umschalter oben rechts „Foto | Text“): Nach dem Lesen bleibt das Foto sichtbar. Beim Vorlesen leuchtet das gesprochene Wort direkt auf dem Foto auf, der ganze Satz leicht dahinter. Alle Texte, die vorgelesen werden können, sind gelb gestrichelt umrandet und haben ein kleines Lautsprecher-Zeichen. Ein Tipp darauf liest genau diesen Textbaustein vor, zum Beispiel eine Beschriftung neben einem Bild. Ideal für Kinder, die noch nicht lesen können. Gibt es nur bei Fotos, die mRead selbst liest (nicht beim Kurzbefehl oder Einfügen).
 - **Text-Ansicht:** Der erkannte Text groß als Fließtext, wie bisher.
 - **Vorlesen:** Der gelbe Abspiel-Knopf liest den ganzen Text vor. Der aktuelle Satz wird hellgelb, das aktuelle Wort kräftig gelb markiert. Stopp hält an, beim nächsten Tippen geht es beim gleichen Satz weiter.
 - **Wort antippen:** Liest genau dieses Wort vor.
@@ -22,7 +22,6 @@ Eine einfache Web-App fürs iPad, mit der Kinder Fotos von gedruckten Texten mac
 - **Tempo:** Umschalten zwischen normal und langsam.
 - **A− / A+:** Schrift kleiner oder größer.
 - **Abc / ABC:** Umschalten zwischen normaler Schreibweise und Großbuchstaben. Ä, Ö, Ü bleiben erhalten, ß wird zum großen ẞ.
-- **Foto ansehen:** Das kleine Vorschaubild oben zeigt das Originalfoto zum Vergleichen.
 - **Wortfilter:** Gängige Schimpfwörter werden als *** angezeigt und nicht vorgelesen.
 - Der zuletzt erkannte Text bleibt gespeichert, auch wenn die App geschlossen wird.
 
