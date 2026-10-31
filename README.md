@@ -83,6 +83,8 @@ Dieselbe Adresse funktioniert auch auf Android – es gibt nur eine mRead-Fassun
 
 Danach geht alles wie auf dem iPad, auch ohne Internet. Zusätzlich auf Android:
 
+- **Schnellstart vom Startbildschirm:** Das mRead-Symbol lange drücken → **Foto vorlesen**, **Weiterlesen** oder **Text einfügen**. Jeden Eintrag kann man mit dem Finger auf den Startbildschirm ziehen, dann gibt es dort z. B. einen eigenen gelben Kamera-Knopf. mRead öffnet sich mit einem großen Knopf – einmal antippen, dann geht die Kamera auf bzw. das Vorlesen los (Android erlaubt Kamera, Ton und Einfügen erst nach einem Tippen). „Weiterlesen“ macht dort weiter, wo zuletzt aufgehört wurde.
+  Neu installierte mRead-Versionen zeigen die Einträge sofort; bei einer schon installierten mRead-App kann es einen Tag dauern, bis Android sie übernimmt – sonst mRead einmal vom Startbildschirm entfernen und neu installieren.
 - **Teilen an mRead:** In der Galerie (oder Google Fotos) ein Foto öffnen → **Teilen** → **mRead**. Das Foto öffnet sich direkt zum Bereich-Wählen.
 - **Google Lens statt Kurzbefehl:** Den Kurzbefehl gibt es nur auf dem iPad. Auf Android liest **Google Lens** sehr genau: Kamera-App oder Google-App → Lens → auf den Text richten → **Text** → Text markieren → **Teilen** → **mRead** (oder „Kopieren“ und in mRead mit dem Klemmbrett-Knopf einfügen).
 - **Stimmen:** Die Stimme kommt von der Android-Sprachausgabe (meist „Google Sprachausgabe“). Schönere deutsche Stimmen: Android-Einstellungen → nach „Sprachausgabe“ suchen → Google Sprachausgabe → Sprachdaten installieren → Deutsch. Oder einfach eine **KI-Stimme** in mRead wählen – die klingt auf jedem Gerät gleich.

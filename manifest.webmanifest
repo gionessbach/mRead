@@ -10,9 +10,24 @@
   "background_color": "#F5F4EF",
   "theme_color": "#F5F4EF",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "share_target": {
     "action": "./teilen",
@@ -22,7 +37,55 @@
       "title": "title",
       "text": "text",
       "url": "url",
-      "files": [{ "name": "image", "accept": ["image/*"] }]
+      "files": [
+        {
+          "name": "image",
+          "accept": [
+            "image/*"
+          ]
+        }
+      ]
     }
-  }
+  },
+  "shortcuts": [
+    {
+      "name": "Foto vorlesen",
+      "short_name": "Foto",
+      "description": "Foto von einem Text machen und vorlesen lassen",
+      "url": "./?aktion=foto",
+      "icons": [
+        {
+          "src": "shortcut-foto.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Weiterlesen",
+      "short_name": "Weiterlesen",
+      "description": "Den letzten Text weiter vorlesen",
+      "url": "./?aktion=weiter",
+      "icons": [
+        {
+          "src": "shortcut-weiter.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Text einfügen",
+      "short_name": "Einfügen",
+      "description": "Kopierten Text einfügen und vorlesen",
+      "url": "./?aktion=einfuegen",
+      "icons": [
+        {
+          "src": "shortcut-einfuegen.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }

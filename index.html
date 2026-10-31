@@ -257,6 +257,11 @@
   .voice .prog{font-size:13px;color:var(--muted);font-weight:600}
   .voice .tag.ki{background:var(--ink);color:var(--yellow)}
   .panel h3{margin:6px 0 0;font-size:15px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  /* Start über eine App-Verknüpfung (Android): ein großer Knopf, ein Tippen genügt */
+  .launch{position:fixed;inset:0;z-index:20;background:rgba(245,244,239,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center}
+  .launch .big-btn{width:168px;height:168px} .launch .big-btn svg{width:80px;height:80px}
+  .launch .t{font-family:var(--font-kid);font-weight:700;font-size:30px}
+  .launch .x2{border:0;background:none;color:var(--muted);font-size:18px;padding:12px 20px;cursor:pointer}
   @media (prefers-reduced-motion:reduce){ .busy .photo::after{animation:none;top:39%} }
   @media (max-width:560px){ .brand span{display:none} .toggle button{min-width:64px} }
   /* Handy (z. B. Android): alles kompakter, nichts ragt über den Rand */
@@ -438,6 +443,12 @@
     <label class="opt" for="optKids"><span>Kinderbuch-Schriften<small>Erkennung für Schreibschrift, Handschrift-, Comic- und Schulschriften</small></span><input id="optKids" class="switch" type="checkbox"></label>
     <p class="panel-hint" id="voiceHint">Schönere Stimmen lassen sich auf dem iPad laden: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch. Stimmen mit „Erweitert“ oder „Premium“ klingen am natürlichsten. Danach mRead neu öffnen.</p>
   </div>
+</div>
+
+<div class="launch" id="launch" hidden>
+  <button id="launchGo" class="big-btn" type="button"></button>
+  <div class="t" id="launchText"></div>
+  <button id="launchNo" class="x2" type="button">Abbrechen</button>
 </div>
 
 <div class="viewer" id="viewer" hidden>
@@ -1541,6 +1552,7 @@
     }
   }
   function stopReading(){
+    if(playing) savePos();
     halt();
     playing = false; stepPaused = false;
     mark(null, null);
@@ -1552,8 +1564,15 @@
       return { s: sIdx, idx: idx, words: idx.map(function(t){ return speechText(tokens[t].text); }) };
     }).filter(function(it){ return it.idx.length; });
   }
+  // Leseposition merken (für „Weiterlesen“ nach dem Neustart), passend zum aktuellen Text
+  function textKey(){ return paras.length + ":" + (paras[0] || []).slice(0, 8).join(" "); }
+  function savePos(){ try{ localStorage.setItem("mread-pos", JSON.stringify({ s: resumeFrom, k: textKey() })); }catch(e){} }
+  function loadPos(){
+    try{ var d = JSON.parse(localStorage.getItem("mread-pos") || "null"); if(d && d.k === textKey() && d.s > 0) resumeFrom = d.s; }catch(e){}
+  }
   function readingDone(lastS, whole){
     run = null; playing = false;
+    setTimeout(savePos, 0);
     if(stepMode && lastS != null && lastS + 1 < sentences.length){
       resumeFrom = lastS + 1; stepPaused = true;
       mark(lastS, null);                 // der gelesene Satz bleibt hell markiert
@@ -2399,6 +2418,30 @@
     useText(raw, "shortcut");
   }
   window.addEventListener("hashchange", readHash);
+  // App-Verknüpfungen (Android: App-Symbol lange drücken): ?aktion=foto | weiter | einfuegen
+  // Kamera, Vorlesen und Einfügen dürfen erst nach einem Tippen starten – darum ein großer Knopf.
+  var launch = $("launch"), launchGo = $("launchGo"), launchText = $("launchText"), launchAction = null;
+  var ICON_PASTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg>';
+  function readAction(){
+    var m = /[?&]aktion=(foto|weiter|einfuegen)/.exec(location.search);
+    if(!m) return;
+    try{ history.replaceState(null, "", location.pathname + location.hash); }catch(e){}
+    var a = m[1];
+    if(a === "weiter" && !paras.length) a = "foto";
+    launchAction = a;
+    launchGo.innerHTML = a === "foto" ? ICON_CAM : a === "weiter" ? ICON_PLAY : ICON_PASTE;
+    launchText.textContent = a === "foto" ? "Foto machen" : a === "weiter" ? "Weiterlesen" : "Text einfügen";
+    launchGo.setAttribute("aria-label", launchText.textContent);
+    launch.hidden = false;
+  }
+  launchGo.addEventListener("click", function(){
+    launch.hidden = true;
+    if(launchAction === "foto") openCamera();
+    else if(launchAction === "weiter"){ if(kiName()) audioCtx(); readFrom(resumeFrom); }
+    else pasteBtn.click();
+  });
+  $("launchNo").addEventListener("click", function(){ launch.hidden = true; });
+
   // Android: Foto wurde über „Teilen“ an mRead geschickt (der Service Worker hat es zwischengespeichert)
   function readShared(){
     if(!/[?&]geteilt=foto/.test(location.search) || !window.caches) return;
@@ -2531,6 +2574,8 @@
   render();
   readHash();
   readShared();
+  loadPos();
+  readAction();
 
   // Texterkennung im Hintergrund schon vorbereiten, damit das erste Foto schneller geht
   if(typeof Tesseract !== "undefined") setTimeout(function(){ getWorker().catch(function(){}); }, 1200);
