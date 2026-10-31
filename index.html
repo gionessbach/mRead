@@ -362,8 +362,8 @@
         var avg = lw.reduce(function(s, w){ return s + w.confidence; }, 0) / lw.length;
         if(avg < 55 || letters < 2) return;                       // Zeile ist vermutlich kein Text
         lw.forEach(function(w){
-          var t = cleanWord(w.text);
-          if(!t) return;
+          var t = cleanWord(w.text.replace(INVISIBLE, ""));
+          if(!t || isJunk(t)) return;
           if(w.confidence < 35 && !LETTER.test(t)) return;         // einzelne Krümel
           if(!LETTER.test(t) && !/^[0-9]+[.,:]?$/.test(t) && !/^[–—-]$/.test(t)) return;
           // Trennstrich am Zeilenende: "Schmet-" + "terling" → "Schmetterling"
@@ -515,7 +515,11 @@
   }
 
   function rate(){ return slow ? 0.6 : 0.85; }
-  function speakable(t){ return t.indexOf(MASKE) !== 0; }
+  // Was die Stimme bekommt: nur Buchstaben, Ziffern und normale Satzzeichen
+  function speechText(t){
+    return t.replace(INVISIBLE, "").replace(/[^A-Za-zÀ-ÖØ-öø-ÿẞ0-9\s.,!?;:'’\-–—…„“"»«()]/g, "").trim();
+  }
+  function speakable(t){ return t.indexOf(MASKE) !== 0 && !isJunk(t) && /[A-Za-zÀ-ÖØ-öø-ÿẞ0-9]/.test(speechText(t)); }
 
   function utter(text){
     var u = new SpeechSynthesisUtterance(text);
@@ -546,7 +550,7 @@
         idx.forEach(function(t){
           if(text) text += " ";
           starts.push(text.length);
-          text += tokens[t].text;
+          text += speechText(tokens[t].text);
         });
         var u = utter(text);
         u.onstart = function(){ resumeFrom = sIdx; mark(sIdx, idx[0]); };
@@ -570,7 +574,7 @@
     if(!t || !speakable(t.text)) return;
     speechSynthesis.cancel();
     playing = false; updateButtons();
-    var u = utter(t.text.replace(PUNCT_END, "").replace(/^["„“»«(]+/, ""));
+    var u = utter(speechText(t.text).replace(/[.,!?;:…"“”»«)]+$/, "").replace(/^["„“»«(]+/, ""));
     u.onstart = function(){ mark(null, tIdx); };
     u.onend = u.onerror = function(){ if(!playing) mark(null, null); };
     speechSynthesis.speak(u);
@@ -695,26 +699,58 @@
 
   /* ---------- Text von außen: Kurzbefehl (#t=…) oder Einfügen ---------- */
   // Live Text liefert Zeilen. Daraus werden Absätze, getrennte Wörter werden wieder zusammengesetzt.
+  // Unsichtbare Sonderzeichen (weiche Trennstriche, Platzhalter, Steuerzeichen …), die die Stimme sonst seltsam vorliest
+  var INVISIBLE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFA0\uFFF0-\uFFFF\uE000-\uF8FF]/g;
+  var BULLET = /^[•·▪●◦○■□►▸‣⁃∙\-–—*>]+\s*/;
+  // erlaubte Wörter mit ein oder zwei Buchstaben – alles andere Kurze ist meist Erkennungs-Krümel aus Bildern
+  var SHORT_OK = ["ab","am","an","au","da","du","ei","er","es","im","in","ja","je","na","ob","oh","so","um","wo","zu","hm","äh","oje","ah","ha","he","hi","ui","uh","eh","ok","pst","ne"];
+  function isJunk(t){
+    var core = t.replace(/^[„"“”»«'‚‘’(\[]+|[„"“”»«'‚‘’)\].,!?;:…]+$/g, "");
+    if(!core) return !/^[–—-]$/.test(t);                       // nur Satzzeichen (Gedankenstrich bleibt)
+    if(!/[A-Za-zÄÖÜäöüß0-9]/.test(core)) return true;          // keine Buchstaben, keine Ziffern
+    if(/^[0-9]+([.,:][0-9]+)*$/.test(core)) return false;      // Zahlen bleiben
+    if(core.length <= 2 && /^[A-Za-zÄÖÜäöüß]+$/.test(core)){
+      if(SHORT_OK.indexOf(core.toLowerCase()) >= 0) return false;
+      if(/^[A-ZÄÖÜ][a-zäöü]?\.$/.test(core + (t.slice(-1) === "." ? "." : ""))) return false;   // Abkürzung wie "Dr." oder "S."
+      return true;
+    }
+    return false;
+  }
+
+  // Live Text liefert nur Zeilen. Daraus werden wieder Absätze:
+  // – Leerzeile, Aufzählungspunkt oder Überschrift beginnt einen neuen Absatz,
+  // – eine Zeile, die mit einem Satzende aufhört und deutlich kürzer ist als die anderen, beendet einen Absatz.
   function textToParas(raw){
-    var lines = String(raw).replace(/\r/g, "").split("\n").map(function(l){ return l.replace(/\s+/g, " ").trim(); });
+    var lines = String(raw).replace(INVISIBLE, "").replace(/\r\n?/g, "\n").replace(/[\u2028\u2029]/g, "\n")
+      .replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000\t]/g, " ")
+      .split("\n").map(function(l){
+        return l.replace(/\s+/g, " ").trim().split(" ").filter(function(w){ return w && !isJunk(w); }).join(" ");
+      });
+    // Zeilen, die nach dem Aufräumen nur noch ein Wort ohne Satzzeichen sind und nicht in einen Satz passen, sind meist Bildbeschriftungen
+    var lens = lines.filter(function(l){ return l.length > 12; }).map(function(l){ return l.length; }).sort(function(x, y){ return x - y; });
+    var typical = lens.length ? lens[Math.floor(lens.length * 0.75)] : 0;
+
     var out = [], cur = [];
     function flush(){ if(cur.length){ out.push(cur); cur = []; } }
     lines.forEach(function(line, i){
       if(!line){ flush(); return; }
-      var bullet = /^[•·▪●◦\-–*]\s+/.test(line);
-      if(bullet){ flush(); line = line.replace(/^[•·▪●◦\-–*]\s+/, ""); }
+      var bullet = BULLET.test(line) && /^[•·▪●◦○■□►▸‣⁃∙]|^[-–—*>]\s/.test(line);
+      if(bullet){ flush(); line = line.replace(BULLET, ""); }
       var ws = line.split(" ").filter(Boolean);
       if(!ws.length) return;
       var prev = cur[cur.length - 1];
-      // kurze Zeile ohne Satzzeichen nach einem Satzende, danach Großbuchstabe: vermutlich eine Überschrift
-      var next = lines[i + 1] || "";
-      if(ws.length <= 5 && !/[.,;:!?…"“”»«)-]$/.test(line) && (!prev || /[.!?:…"“”»«]$/.test(prev)) && (!next || /^[A-ZÄÖÜ„"»«•·▪●◦\-–*]/.test(next))){
+      var next = "";
+      for(var j = i + 1; j < lines.length && !next; j++) next = lines[j];
+      // kurze Zeile ohne Satzzeichen nach einem Satzende, danach Großbuchstabe: Überschrift
+      if(ws.length <= 5 && !/[.,;:!?…"“”»«)-]$/.test(line) && (!prev || /[.!?:…"“”»«]$/.test(prev)) && (!next || /^[A-ZÄÖÜ„"»«•·▪●◦○■□►▸‣⁃∙\-–—*0-9]/.test(next))){
         flush(); out.push(ws); return;
       }
       if(prev && /[A-Za-zÄÖÜäöüß]-$/.test(prev) && /^[a-zäöüß]/.test(ws[0]) && !/^(und|oder|bis|sowie)$/.test(ws[0].replace(/[.,!?;:]$/, ""))){
         cur[cur.length - 1] = prev.slice(0, -1) + ws.shift();   // "Hau-" + "fen" → "Haufen"
       }
       Array.prototype.push.apply(cur, ws);
+      // Absatzende: Satzende und Zeile deutlich kürzer als üblich
+      if(/[.!?:…]["“”»«)]*$/.test(line) && typical && line.length < typical * 0.8) flush();
     });
     flush();
     return out.map(function(ws){ return ws.map(censor); });
