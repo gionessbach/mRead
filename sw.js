@@ -2,7 +2,7 @@
    Beim ersten Öffnen werden App, Schrift und Texterkennung auf dem iPad gespeichert.
    Danach funktioniert mRead auch ohne Internet. KI-Stimmen werden gespeichert, sobald sie einmal geladen wurden.
    Bei Änderungen an Dateien in vendor/ oder tessdata/ die Versionsnummer erhöhen. */
-var APP = "mread-app-6";
+var APP = "mread-app-7";
 var BIG = "mread-voices-1";      // große Dateien (KI-Stimmen, Sprachmodelle) – bleiben bei App-Updates erhalten
 var SHELL = [
   "./", "index.html", "apple-touch-icon.png", "favicon.png", "manifest.webmanifest", "icon-192.png",

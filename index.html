@@ -22,12 +22,12 @@
   :root{
     --bg:#F5F4EF;          /* Hintergrund, leicht warmes Grau */
     --sheet:#FFFFFF;       /* Lesefläche */
-    --ink:#26261F;         /* Anthrazit: Text, Symbole */
+    --ink:#262625;         /* Anthrazit: Text, Symbole */
     --muted:#8C8A7E;       /* Hinweise */
     --line:#E3E1D8;        /* Ränder */
-    --yellow:#FDD002;      /* Hauptfarbe (wie das Logo) */
+    --yellow:#FDD602;      /* Hauptfarbe (wie das Logo) */
     --yellow-deep:#D9B000; /* Schatten der gelben Knöpfe */
-    --mark:#FDD002;        /* gerade gelesenes Wort */
+    --mark:#FDD602;        /* gerade gelesenes Wort */
     --mark-soft:#FFF6C4;   /* gerade gelesener Satz */
     --font-kid:"Andika","Comic Neue",system-ui,-apple-system,sans-serif;
     --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
@@ -194,7 +194,7 @@
   /* Wortflächen: unsichtbar, nur zum Markieren beim Vorlesen */
   .pb{position:absolute;border-radius:3px;pointer-events:none;mix-blend-mode:multiply;transition:background .12s}
   .pb.cur{background:rgba(253,208,2,.95);box-shadow:0 0 0 3px rgba(253,208,2,.95)}
-  .pb.masked{background:#26261F;mix-blend-mode:normal}
+  .pb.masked{background:#262625;mix-blend-mode:normal}
   /* vorlesbare Zeilen: wie mit Textmarker hinterlegt – die Schrift bleibt sichtbar */
   .pl{position:absolute;border-radius:4px;cursor:pointer;background:rgba(253,208,2,.42);mix-blend-mode:multiply;transition:background .15s}
   .pl::before{content:"";position:absolute;inset:-5px -3px}          /* größere Tippfläche */
@@ -219,7 +219,7 @@
   .quad .mask{fill:rgba(20,20,16,.6);fill-rule:evenodd}
   .quad .edge{fill:rgba(253,208,2,.08);stroke:var(--yellow);stroke-width:3;stroke-linejoin:round;cursor:move}
   .quad .grid{stroke:rgba(253,208,2,.55);stroke-width:1.5;stroke-dasharray:6 6;fill:none;pointer-events:none}
-  .quad .knob{fill:var(--yellow);stroke:#26261F;stroke-width:3;cursor:grab}
+  .quad .knob{fill:var(--yellow);stroke:#262625;stroke-width:3;cursor:grab}
   .quad .hit{fill:transparent;cursor:grab}
 
   /* Stimmenauswahl */
@@ -354,10 +354,10 @@
 
     <div class="empty" id="empty">
       <svg viewBox="0 0 120 120" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="10" y="30" width="100" height="72" rx="16" fill="#FDD002"/>
-        <path d="M40 30l7-12h26l7 12" stroke="#26261F" stroke-width="7"/>
-        <circle cx="60" cy="66" r="22" fill="#fff" stroke="#26261F" stroke-width="7"/>
-        <path d="M52 61h16M52 70h11" stroke="#26261F" stroke-width="5"/>
+        <rect x="10" y="30" width="100" height="72" rx="16" fill="#FDD602"/>
+        <path d="M40 30l7-12h26l7 12" stroke="#262625" stroke-width="7"/>
+        <circle cx="60" cy="66" r="22" fill="#fff" stroke="#262625" stroke-width="7"/>
+        <path d="M52 61h16M52 70h11" stroke="#262625" stroke-width="5"/>
       </svg>
       <div class="big">Mach ein Foto von einem Text.</div>
       <div class="small" id="emptyHint">Halte das iPad ruhig und genau von oben über die Seite. Dann lese ich dir den Text vor.</div>
@@ -514,11 +514,11 @@
   var ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></svg>';
   var ICON_NEXT = '<svg viewBox="0 0 24 24"><path d="M5 5.6v12.8a1 1 0 0 0 1.5.86l9.6-6.4a1 1 0 0 0 0-1.72L6.5 4.74A1 1 0 0 0 5 5.6z" fill="currentColor"/><rect x="17.5" y="5" width="3" height="14" rx="1.2" fill="currentColor"/></svg>';
   var ICON_ALL = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 10h20M6 16h20M6 22h14"/></svg>';
-  var ICON_STEP = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="12" width="18" height="8" rx="3" fill="#FDD002"/><path d="M8 16h10M26 11v10"/></svg>';
+  var ICON_STEP = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="12" width="18" height="8" rx="3" fill="#FDD602"/><path d="M8 16h10M26 11v10"/></svg>';
   var ICON_STOP = '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
-  var ICON_SLOW = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-6 4.5-10 10-10s10 4 10 10z" fill="#FDD002"/><path d="M9 21l-1 4M21 21l1 4M25 19c2 0 3.5-1.5 3.5-3.5S27 13 25.5 13"/><path d="M11 15.5l4 3 4-3"/></svg>';
-  var ICON_NORMAL = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 23c0-6 4.5-10 10.5-10 3.5 0 6.5 1.8 8.3 4.6L28 20.5l-3.6 1.8c-.8.5-1.8.7-2.8.7H5z" fill="#FDD002"/><path d="M6.5 18.5L5 15l3.8 1.2L8.5 12l3.4 2.6L13 10l2.1 3.6L18 10.5l.6 3.7 3-1.9"/><circle cx="23.3" cy="18.6" r=".9" fill="currentColor"/><path d="M9 23v2.5M19 23v2.5"/></svg>';
-  var ICON_FAST = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21c1-4.5 4.5-7 9-7 2.2 0 3.6.5 4.8 1.4L26 14l1.8 2.4c.7 1 .3 2.3-.8 2.6l-3 .9c-1.3 2.4-4 3.6-7.5 3.6H11c-1.3 0-2.2-1-2-2.5z" fill="#FDD002"/><path d="M22.8 15.4c1.5-3.4 4.4-6.4 6-6 1.2.3-.9 4.1-4 6.8M21 14.6c.6-3.6 2.7-7.3 4.3-7.2 1.2.1 0 4-2.2 7"/><circle cx="25.4" cy="17.3" r=".8" fill="currentColor"/><path d="M11 23.5l-4 2.5M19 23.5l4.5 2.5M9.5 18.5c-1.5-.3-2.5.5-2.6 1.6"/><path d="M2 12h5M1 16h4M3 20h3" stroke-width="1.6"/></svg>';
+  var ICON_SLOW = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21c0-6 4.5-10 10-10s10 4 10 10z" fill="#FDD602"/><path d="M9 21l-1 4M21 21l1 4M25 19c2 0 3.5-1.5 3.5-3.5S27 13 25.5 13"/><path d="M11 15.5l4 3 4-3"/></svg>';
+  var ICON_NORMAL = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 23c0-6 4.5-10 10.5-10 3.5 0 6.5 1.8 8.3 4.6L28 20.5l-3.6 1.8c-.8.5-1.8.7-2.8.7H5z" fill="#FDD602"/><path d="M6.5 18.5L5 15l3.8 1.2L8.5 12l3.4 2.6L13 10l2.1 3.6L18 10.5l.6 3.7 3-1.9"/><circle cx="23.3" cy="18.6" r=".9" fill="currentColor"/><path d="M9 23v2.5M19 23v2.5"/></svg>';
+  var ICON_FAST = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21c1-4.5 4.5-7 9-7 2.2 0 3.6.5 4.8 1.4L26 14l1.8 2.4c.7 1 .3 2.3-.8 2.6l-3 .9c-1.3 2.4-4 3.6-7.5 3.6H11c-1.3 0-2.2-1-2-2.5z" fill="#FDD602"/><path d="M22.8 15.4c1.5-3.4 4.4-6.4 6-6 1.2.3-.9 4.1-4 6.8M21 14.6c.6-3.6 2.7-7.3 4.3-7.2 1.2.1 0 4-2.2 7"/><circle cx="25.4" cy="17.3" r=".8" fill="currentColor"/><path d="M11 23.5l-4 2.5M19 23.5l4.5 2.5M9.5 18.5c-1.5-.3-2.5.5-2.6 1.6"/><path d="M2 12h5M1 16h4M3 20h3" stroke-width="1.6"/></svg>';
 
   /* ---------- Gerät: iPad oder Android-Handy ---------- */
   var ANDROID = /Android/i.test(navigator.userAgent);
