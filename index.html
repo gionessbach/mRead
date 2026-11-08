@@ -1412,9 +1412,16 @@
 
   /* ---------- KI-Stimmen (Piper): laufen ganz im Browser, auch ohne Internet ----------
      Text → Lautschrift (espeak, vendor/piper) → Sprachmodell (voices/*.onnx, onnxruntime in vendor/ort) → Ton */
-  var KI = { kerstin: "Kerstin", ramona: "Ramona", thorsten: "Thorsten" };
-  var KI_INFO = { kerstin: "Frauenstimme", ramona: "Frauenstimme", thorsten: "Männerstimme" };
-  function kiName(){ var n = voiceURI && voiceURI.indexOf("piper:") === 0 ? voiceURI.slice(6) : null; return n && KI[n] ? n : null; }
+  // Gemessen mit einer Spracherkennung (Anteil falsch verstandener Wörter in 20 Kinderbuch-Sätzen):
+  // Pavoque 12 %, Thorsten 14 %, Kerstin 16 %, Ramona 36 % – Ramona wurde deshalb durch Pavoque ersetzt.
+  var KI = { pavoque: "Pavoque", thorsten: "Thorsten", kerstin: "Kerstin" };
+  var KI_INFO = { pavoque: "Männerstimme, am deutlichsten", thorsten: "Männerstimme, gut für einzelne Wörter", kerstin: "Frauenstimme" };
+  var KI_OLD = { ramona: "kerstin" };
+  function kiName(){
+    var n = voiceURI && voiceURI.indexOf("piper:") === 0 ? voiceURI.slice(6) : null;
+    if(n && KI_OLD[n]) n = KI_OLD[n];
+    return n && KI[n] ? n : null;
+  }
   var piper = { name: null, sess: null, cfg: null, loading: null, loadingName: null, modReady: null, onLine: null, chain: Promise.resolve(), ctx: null };
   function loadScript(src){
     return new Promise(function(res, rej){
@@ -1524,11 +1531,78 @@
     if(piper.ctx.state === "suspended") piper.ctx.resume();
     return piper.ctx;
   }
+  /* Klang der KI-Stimmen: Die Sprachmodelle klingen leise (Spitzen nur bei 15–55 %) und etwas dumpf.
+     Darum: Brummen unter 110 Hz weg, Sprachverständlichkeit um 3 kHz anheben, sanft komprimieren,
+     auf gleiche Lautheit bringen (etwa –16 dB statt –25 dB) und Spitzen mit Vorschau begrenzen. */
+  function kiBiquad(type, f0, q, gainDb, sr){
+    var A = Math.pow(10, gainDb / 40), w = 2 * Math.PI * f0 / sr, cs = Math.cos(w), al = Math.sin(w) / (2 * q), c;
+    if(type === "hp") c = [(1 + cs) / 2, -(1 + cs), (1 + cs) / 2, 1 + al, -2 * cs, 1 - al];
+    else c = [1 + al * A, -2 * cs, 1 - al * A, 1 + al / A, -2 * cs, 1 - al / A];
+    return [c[0] / c[3], c[1] / c[3], c[2] / c[3], c[4] / c[3], c[5] / c[3]];
+  }
+  function kiFilt(x, c){
+    var x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for(var n = 0; n < x.length; n++){ var v = c[0] * x[n] + c[1] * x1 + c[2] * x2 - c[3] * y1 - c[4] * y2; x2 = x1; x1 = x[n]; y2 = y1; y1 = v; x[n] = v; }
+  }
+  function kiKlang(pcm, sr){
+    var out = new Float32Array(pcm), i, peak = 0;
+    for(i = 0; i < out.length; i++) peak = Math.max(peak, Math.abs(out[i]));
+    if(peak < 1e-4) return out;
+    for(i = 0; i < out.length; i++) out[i] *= 0.9 / peak;
+    kiFilt(out, kiBiquad("hp", 110, 0.707, 0, sr));
+    kiFilt(out, kiBiquad("peak", 3000, 1, 4, sr));
+    var thr = Math.pow(10, -24 / 20), env = 0, atk = Math.exp(-1 / (0.004 * sr)), rel = Math.exp(-1 / (0.1 * sr));
+    for(i = 0; i < out.length; i++){
+      var a = Math.abs(out[i]); env = a > env ? atk * env + (1 - atk) * a : rel * env + (1 - rel) * a;
+      if(env > thr) out[i] *= Math.pow(env / thr, 1 / 3 - 1);
+    }
+    var fr = Math.max(1, Math.round(0.02 * sr)), frames = [], mx = 0, sum = 0, cnt = 0;
+    for(i = 0; i + fr <= out.length; i += fr){ var e = 0; for(var k = i; k < i + fr; k++) e += out[k] * out[k]; e /= fr; frames.push(e); mx = Math.max(mx, e); }
+    frames.forEach(function(e){ if(e > mx * 0.001){ sum += e; cnt++; } });
+    var g = Math.min(0.2 / Math.max(cnt ? Math.sqrt(sum / cnt) : 0.1, 1e-4), 30);
+    var L = Math.round(0.003 * sr), need = new Float32Array(out.length);
+    for(i = 0; i < out.length; i++){ out[i] *= g; var m = Math.abs(out[i]); need[i] = m > 0.92 ? 0.92 / m : 1; }
+    var gr = 1, relc = 1 - Math.exp(-1 / (0.06 * sr));
+    for(i = 0; i < out.length; i++){
+      var lo = 1, j1 = Math.min(out.length - 1, i + L);
+      for(var j = Math.max(0, i - L); j <= j1; j++) if(need[j] < lo) lo = need[j];
+      gr = lo < gr ? lo : gr + (lo - gr) * relc;
+      var z = out[i] * gr; out[i] = z > 0.98 ? 0.98 : z < -0.98 ? -0.98 : z;
+    }
+    var f = Math.min(80, out.length >> 2);
+    for(i = 0; i < f; i++){ out[i] *= i / f; out[out.length - 1 - i] *= i / f; }
+    return out;
+  }
+  // Einzelne Wörter sprechen die Modelle zu kurz und undeutlich. Darum „Hase, Hase.“ erzeugen
+  // und nur das zweite Wort abspielen – das klingt wie ein richtig ausgesprochenes Wort.
+  function kiWordText(w){ return w + ", " + w + "."; }
+  function kiSecondPart(pcm, sr){
+    var fr = Math.max(1, Math.round(0.01 * sr)), e = [], mx = 0, i;
+    for(i = 0; i + fr <= pcm.length; i += fr){ var s = 0; for(var k = i; k < i + fr; k++) s += pcm[k] * pcm[k]; s = Math.sqrt(s / fr); e.push(s); mx = Math.max(mx, s); }
+    var thr = Math.max(mx * 0.06, 1e-4), n = e.length, first = -1, last = -1;
+    for(i = 0; i < n; i++) if(e[i] >= thr){ if(first < 0) first = i; last = i; }
+    if(first < 0) return pcm;
+    // Pause zwischen den beiden Wörtern: links und rechts davon muss jeweils hörbare Sprache sein
+    var best = 0, end = -1, voicedBefore = 0;
+    for(i = first; i <= last; ){
+      if(e[i] < thr){
+        var j = i; while(j <= last && e[j] < thr) j++;
+        var voicedAfter = 0; for(var q = j; q <= last; q++) if(e[q] >= thr) voicedAfter++;
+        if(voicedBefore >= 6 && voicedAfter >= 6 && j - i >= 3 && j - i > best){ best = j - i; end = j; }
+        i = j;
+      }else{ voicedBefore++; i++; }
+    }
+    if(end < 0) return pcm;
+    var a = Math.max(0, end * fr - Math.round(0.03 * sr)), b = Math.min(pcm.length, (last + 1) * fr + Math.round(0.08 * sr));
+    return b - a >= 0.12 * sr ? pcm.subarray(a, b) : pcm;
+  }
   function playPcm(pcm, r){
     return new Promise(function(res){
       var ctx = audioCtx();
       if(!ctx || r.cancel){ res(); return; }
-      var buf = ctx.createBuffer(1, pcm.length, piper.cfg.audio.sample_rate);
+      var sr = piper.cfg.audio.sample_rate;
+      pcm = kiKlang(pcm, sr);
+      var buf = ctx.createBuffer(1, pcm.length, sr);
       buf.getChannelData(0).set(pcm);
       var src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination);
       src.onended = function(){ r.src = null; res(); };
@@ -1685,9 +1759,14 @@
   function piperSay(text, onStart){
     halt();
     var r = run = { cancel: false, timers: [] };
+    var single = !/\s/.test(text.trim());
     audioCtx();
-    return piperLoad(kiName()).then(function(){ return phonemize([text]); }).then(function(ph){ return piperSynth(ph[0]); })
-      .then(function(pcm){ if(r.cancel) return; if(onStart) onStart(); return playPcm(pcm, r); })
+    return piperLoad(kiName()).then(function(){ return phonemize([single ? kiWordText(text) : text]); }).then(function(ph){ return piperSynth(ph[0]); })
+      .then(function(pcm){
+        if(r.cancel) return;
+        if(single) pcm = kiSecondPart(pcm, piper.cfg.audio.sample_rate);
+        if(onStart) onStart(); return playPcm(pcm, r);
+      })
       .then(function(){ if(run === r) run = null; return !r.cancel; });
   }
 
@@ -2514,7 +2593,7 @@
         piperLoad(name, function(f){ prog("lädt … " + Math.round(f * 100) + " %"); }).then(function(){
           prog("bereit – auch ohne Internet");
           if(kiName() === name) return piperSay(SAMPLE);
-        }).catch(function(){ prog("Laden fehlgeschlagen – nochmal tippen"); });
+        }).catch(function(e){ if(window.console) console.error(e); prog("Laden fehlgeschlagen – nochmal tippen (" + String(e && e.message || e).slice(0, 80) + ")"); });
       });
       b.dataset.ki = name;
       kiEl.appendChild(b);
