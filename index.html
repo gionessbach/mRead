@@ -1414,8 +1414,9 @@
      Text → Lautschrift (espeak, vendor/piper) → Sprachmodell (voices/*.onnx, onnxruntime in vendor/ort) → Ton */
   // Gemessen mit einer Spracherkennung (Anteil falsch verstandener Wörter in 20 Kinderbuch-Sätzen):
   // Pavoque 12 %, Thorsten 14 %, Kerstin 16 %, Ramona 36 % – Ramona wurde deshalb durch Pavoque ersetzt.
-  var KI = { pavoque: "Pavoque", thorsten: "Thorsten", kerstin: "Kerstin" };
-  var KI_INFO = { pavoque: "Männerstimme, am deutlichsten", thorsten: "Männerstimme, gut für einzelne Wörter", kerstin: "Frauenstimme" };
+  // Mit Aussprache-Korrekturen (hartes „ch“) ist Thorsten insgesamt am deutlichsten.
+  var KI = { thorsten: "Thorsten", pavoque: "Pavoque", kerstin: "Kerstin" };
+  var KI_INFO = { thorsten: "Männerstimme, am deutlichsten", pavoque: "Männerstimme", kerstin: "Frauenstimme" };
   var KI_OLD = { ramona: "kerstin" };
   function kiName(){
     var n = voiceURI && voiceURI.indexOf("piper:") === 0 ? voiceURI.slice(6) : null;
@@ -1463,12 +1464,23 @@
     }
     return piper.modReady;
   }
-  // Lautschrift → Zahlen nach der Tabelle der Stimme (ältere Stimmen kennen weniger Zeichen als espeak liefert)
+  // Aussprache-Korrekturen für die KI-Stimmen. Die Lautschrift (espeak) liest manche Wörter falsch:
+  // zu kurze Vokale oder falsche Betonung in zusammengesetzten Wörtern. Hier ein Wort(-teil) so umschreiben,
+  // wie es klingen soll – z. B. ein „h“ für einen langen Vokal, ein Bindestrich trennt Wortteile.
+  var AUSSPRACHE = [
+    [/(^|[^A-Za-zÄÖÜäöüß])([Ww])üst/g, "$1$2ühst"],               // Wüste, Wüsten, Wüstenfuchs (lang)
+    [/(^|[^A-Za-zÄÖÜäöüß]|ge)([Ee])bn(?=e)/g, "$1$2hbn"],          // ebnet, ebnen, geebnet (lang)
+    [/(^|[^A-Za-zÄÖÜäöüß])(Kamel|Honig)(?=[a-zäöüß]{3,})/g, "$1$2-"] // Kamelhaar, Honigbiene: Betonung
+  ];
+  function fixText(t){ AUSSPRACHE.forEach(function(r){ t = t.replace(r[0], r[1]); }); return t; }
+  // Lautschrift → Zahlen nach der Tabelle der Stimme
   function toIds(ph){
     var map = piper.cfg.phoneme_id_map, ids = map["^"].concat(map["_"]);
-    Array.from(ph.join("").normalize("NFC")).forEach(function(c){
-      if(map[c]) ids = ids.concat(map[c], map["_"]);
-    });
+    // espeak liefert für kurzes „u“ + „r“ (durch, Turm, Burg) zwei Fragezeichen statt „ʊɾ“
+    var s = ph.join("").replace(/\?\?/g, "ʊɾ").normalize("NFC");
+    // Thorsten verschluckt das weiche „ch“ (ich, Honig) – das harte „ch“ (Bach) versteht man deutlich besser
+    if(piper.name === "thorsten") s = s.replace(/ç/g, "x");
+    Array.from(s).forEach(function(c){ if(map[c]) ids = ids.concat(map[c], map["_"]); });
     return ids.concat(map["$"]);
   }
   // mehrere Texte auf einmal in Lautschrift (Zahlenfolgen für das Sprachmodell) umwandeln
@@ -1478,7 +1490,7 @@
       piper.onLine = function(l){ try{ out.push(toIds(JSON.parse(l).phonemes || [])); }catch(e){} };
       try{
         m.callMain(["-l", (piper.cfg && piper.cfg.espeak.voice) || "de", "--input",
-          JSON.stringify(texts.map(function(t){ return { text: t }; })), "--espeak_data", "/espeak-ng-data"]);
+          JSON.stringify(texts.map(function(t){ return { text: fixText(t) }; })), "--espeak_data", "/espeak-ng-data"]);
       }finally{ piper.onLine = null; }
       while(out.length < texts.length) out.push([]);
       return out;

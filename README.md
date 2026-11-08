@@ -28,7 +28,7 @@ Eine einfache Web-App fürs iPad und für Android-Handys/-Tablets, mit der Kinde
 - **Wort antippen:** Liest genau dieses Wort vor.
 - **Text einfügen** (Klemmbrett-Knopf): Fügt kopierten Text ein. Damit lässt sich auch mit Apples Texterkennung ein Bereich wählen: Foto in der Fotos-App öffnen, auf den Text tippen und halten, die Auswahl mit den Griffen auf den gewünschten Absatz ziehen, „Kopieren“, dann in mRead einfügen.
 - **Stimme wählen** (Zahnrad): Alle deutschen Stimmen des iPads zum Probehören. Die beste wird automatisch gewählt.
-- **KI-Stimmen** (Zahnrad → „KI-Stimmen“): **Pavoque** (Männerstimme, am deutlichsten), **Thorsten** (Männerstimme, gut für einzelne Wörter) und **Kerstin** (Frauenstimme) klingen natürlicher als die meisten iPad-Stimmen und laufen ganz auf dem iPad, ohne Internet. Beim ersten Antippen wird die Stimme einmalig geladen (ca. 90 MB für die erste, ca. 63 MB für jede weitere – am besten im WLAN), danach steht „bereit – auch ohne Internet“. Die Wortmarkierung beim Vorlesen ist bei KI-Stimmen geschätzt und kann etwas vor- oder nachlaufen. Der erste Satz braucht nach dem Öffnen der App ein paar Sekunden. Zurück zur iPad-Stimme: einfach eine Stimme unter „Stimmen des iPads“ antippen. Braucht iPadOS 16.4 oder neuer. KI-Stimmen werden vor dem Abspielen lauter und klarer gemacht (Brummen weg, Sprachbereich angehoben, gleichmäßige Lautstärke); einzelne angetippte Wörter werden mit Satzbetonung erzeugt, damit sie nicht verschluckt werden. Die Stimme Ramona wurde entfernt, weil sie im Test am undeutlichsten war (wer sie gewählt hatte, hört jetzt Kerstin).
+- **KI-Stimmen** (Zahnrad → „KI-Stimmen“): **Thorsten** (Männerstimme, am deutlichsten), **Pavoque** (Männerstimme) und **Kerstin** (Frauenstimme) klingen natürlicher als die meisten iPad-Stimmen und laufen ganz auf dem iPad, ohne Internet. Beim ersten Antippen wird die Stimme einmalig geladen (ca. 90 MB für die erste, ca. 63 MB für jede weitere – am besten im WLAN), danach steht „bereit – auch ohne Internet“. Die Wortmarkierung beim Vorlesen ist bei KI-Stimmen geschätzt und kann etwas vor- oder nachlaufen. Der erste Satz braucht nach dem Öffnen der App ein paar Sekunden. Zurück zur iPad-Stimme: einfach eine Stimme unter „Stimmen des iPads“ antippen. Braucht iPadOS 16.4 oder neuer. KI-Stimmen werden vor dem Abspielen lauter und klarer gemacht (Brummen weg, Sprachbereich angehoben, gleichmäßige Lautstärke); einzelne angetippte Wörter werden mit Satzbetonung erzeugt, damit sie nicht verschluckt werden. Die Stimme Ramona wurde entfernt, weil sie im Test am undeutlichsten war (wer sie gewählt hatte, hört jetzt Kerstin).
 - **Gründlich suchen** (Zahnrad, standardmäßig aus): mRead sucht zusätzlich nach einzelnen, verstreuten Wörtern und liest das Foto noch einmal in vier vergrößerten Stücken. Findet etwas mehr kleine Beschriftungen, das Lesen dauert dafür etwa doppelt so lange. Im Test: 287 statt 285 von 291 Wörtern auf 6 Testseiten.
 - **Satz für Satz** (Knopf links neben dem Tempo, „Am Stück“ / „Satzweise“): mRead liest einen Satz und wartet dann. Der große Knopf zeigt „Weiter“ (Pfeil mit Strich) und liest den nächsten Satz. Der gerade gelesene Satz bleibt markiert – gut zum Mitlesen und Nachsprechen.
 - **Tempo** (Knopf unten rechts): Antippen wechselt zwischen **Normal** (Igel), **Schnell** (Hase) und **Langsam** (Schildkröte). Gilt für iPad-, Android- und KI-Stimmen.
@@ -91,6 +91,17 @@ Danach geht alles wie auf dem iPad, auch ohne Internet. Zusätzlich auf Android:
 - Meldet die Android-Stimme nicht, welches Wort sie gerade spricht, schätzt mRead die Wortmarkierung. Sie kann dann etwas vor- oder nachlaufen.
 
 „Teilen an mRead“ erscheint erst, wenn mRead installiert ist (Schritt 2) und einmal geöffnet wurde.
+
+## Aussprache der KI-Stimmen korrigieren
+
+Die KI-Stimmen wandeln Text zuerst in Lautschrift um (espeak). Dabei werden manche Wörter falsch gelesen, z. B. ein zu kurzer Vokal („Wüste“ wie „wüsste“) oder eine falsche Betonung in zusammengesetzten Wörtern („Kamelhaar“). In `index.html` nach `AUSSPRACHE` suchen und eine Zeile ergänzen – das Wort so umschreiben, wie es klingen soll:
+
+```js
+[/(^|[^A-Za-zÄÖÜäöüß])([Ww])üst/g, "$1$2ühst"],   // ein „h“ macht den Vokal lang
+[/(^|[^A-Za-zÄÖÜäöüß])(Kamel|Honig)(?=[a-zäöüß]{3,})/g, "$1$2-"]  // Bindestrich trennt Wortteile
+```
+
+Außerdem automatisch korrigiert: kurzes „u“ + „r“ (durch, Turm, Burg) ging bisher verloren, und Thorsten spricht das weiche „ch“ (ich, Honig) jetzt als hartes „ch“ (wie in „Bach“), weil er es sonst verschluckt. Kerstin und Pavoque verschlucken das weiche „ch“ teilweise weiterhin; das liegt an ihren Sprachmodellen.
 
 ## Wortfilter erweitern
 
